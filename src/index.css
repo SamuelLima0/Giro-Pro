@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 @theme {
-  --color-neon-green: #00ff66;
-  --color-dark-bg: #0f172a;
-  --color-card-bg: #1e293b;
+  --color-neon-green: #00c853;
+  --color-dark-bg: #0b0f14;
+  --color-card-bg: #121821;
 }
 
 @layer base {
