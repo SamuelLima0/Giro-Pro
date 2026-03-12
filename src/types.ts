@@ -25,6 +25,11 @@ export interface Sale {
   costValue: number;
   taxPercentage: number;
   profit: number;
+  paymentMethod: 'Dinheiro' | 'PIX' | 'Cartão de Débito' | 'Cartão de Crédito';
+  installments?: number;
+  askingPrice: number;
+  discount: number;
+  taxAmount: number;
 }
 
 export interface AppSettings {

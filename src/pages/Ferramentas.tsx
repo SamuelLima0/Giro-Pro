@@ -9,10 +9,17 @@ const Ferramentas: React.FC = () => {
   const [products] = useLocalStorage<Product[]>('giropro_produtos', []);
   
   // Preço Seguro State
-  const [custo, setCusto] = useState('');
+  const [custo, setCusto] = useState(() => {
+    const saved = localStorage.getItem('giro_preco_seguro');
+    return saved ? JSON.parse(saved) : '';
+  });
   const [margem, setMargem] = useState('');
   const [taxas, setTaxas] = useState('');
   const precoSeguro = calcularPrecoSeguro(Number(custo), Number(margem), Number(taxas));
+
+  const salvarPrecoSeguro = () => {
+    localStorage.setItem('giro_preco_seguro', JSON.stringify(custo));
+  };
 
   // Giro Médio calculation
   const soldProducts = products.filter(p => p.status === 'Vendido' && p.soldAt);
@@ -68,6 +75,14 @@ const Ferramentas: React.FC = () => {
             />
           </div>
         </div>
+
+        <button 
+          onClick={salvarPrecoSeguro}
+          className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+        >
+          <Save size={16} />
+          Salvar Valor
+        </button>
 
         <div className="bg-blue-500/10 p-4 rounded-xl border border-blue-500/20 text-center">
           <span className="text-[10px] text-blue-400 font-bold uppercase block mb-1">Preço Sugerido</span>
