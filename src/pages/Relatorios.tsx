@@ -24,6 +24,9 @@ const Relatorios: React.FC = () => {
 
     const faturamento = filteredSales.reduce((acc, s) => acc + s.salePrice, 0);
     const lucro = filteredSales.reduce((acc, s) => acc + s.profit, 0);
+    const reinvestimento = filteredSales.reduce((acc, s) => acc + s.costValue, 0);
+    const lucroPessoal = filteredSales.reduce((acc, s) => acc + (s.personalProfit ?? (s.profit * 0.2)), 0);
+    const caixaEmpresa = filteredSales.reduce((acc, s) => acc + (s.companyCash ?? (s.profit * 0.8)), 0);
     const margem = (lucro / faturamento) * 100;
 
     // Giro médio
@@ -36,7 +39,27 @@ const Relatorios: React.FC = () => {
         }, 0) / soldProducts.length
       : 0;
 
-    return { faturamento, lucro, margem, giroMedio, count: filteredSales.length };
+    return { 
+      faturamento, 
+      lucro, 
+      reinvestimento,
+      lucroPessoal,
+      caixaEmpresa,
+      margem, 
+      giroMedio, 
+      count: filteredSales.length,
+      topProducts: Object.entries(
+        filteredSales.reduce((acc, s) => {
+          if (!acc[s.productName]) acc[s.productName] = { totalProfit: 0, count: 0 };
+          acc[s.productName].totalProfit += s.profit;
+          acc[s.productName].count += 1;
+          return acc;
+        }, {} as Record<string, { totalProfit: number, count: number }>)
+      )
+      .map(([name, data]) => ({ name, avgProfit: data.totalProfit / data.count }))
+      .sort((a, b) => b.avgProfit - a.avgProfit)
+      .slice(0, 3)
+    };
   }, [sales, products, viewType, currentDate]);
 
   const changeDate = (offset: number) => {
@@ -106,6 +129,56 @@ const Relatorios: React.FC = () => {
                 <span className="text-[10px] text-slate-500 font-bold uppercase">Vendas</span>
                 <span className="text-lg font-black text-purple-400">{reportData.count}</span>
               </div>
+            </div>
+          </div>
+
+          <div className="bg-[#121821] p-6 rounded-2xl border border-white/5 flex flex-col gap-4">
+            <h3 className="text-sm font-black text-white uppercase tracking-tighter border-b border-white/5 pb-2">Painel Financeiro</h3>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col">
+                <span className="text-[10px] text-slate-500 font-bold uppercase">Faturamento Total</span>
+                <span className="text-sm font-black text-white">R$ {reportData.faturamento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] text-slate-500 font-bold uppercase">Lucro Total</span>
+                <span className="text-sm font-black text-[#00c853]">R$ {reportData.lucro.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] text-slate-500 font-bold uppercase">Lucro Pessoal (Pro-labore)</span>
+                <span className="text-sm font-black text-blue-400">R$ {reportData.lucroPessoal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] text-slate-500 font-bold uppercase">Caixa da Empresa</span>
+                <span className="text-sm font-black text-purple-400">R$ {reportData.caixaEmpresa.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] text-slate-500 font-bold uppercase">Capital Reinvestido</span>
+                <span className="text-sm font-black text-amber-400">R$ {reportData.reinvestimento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] text-slate-500 font-bold uppercase">Total de Vendas</span>
+                <span className="text-sm font-black text-white">{reportData.count}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-[#121821] p-6 rounded-2xl border border-white/5 flex flex-col gap-4">
+            <h3 className="text-sm font-black text-white uppercase tracking-tighter border-b border-white/5 pb-2">Produtos mais lucrativos</h3>
+            
+            <div className="flex flex-col gap-3">
+              {reportData.topProducts.map((p, i) => (
+                <div key={i} className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">{i === 0 ? '1️⃣' : i === 1 ? '2️⃣' : '3️⃣'}</span>
+                    <span className="text-xs font-bold text-white uppercase">{p.name}</span>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase">Lucro médio</span>
+                    <span className="text-sm font-black text-[#00c853]">R$ {p.avgProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

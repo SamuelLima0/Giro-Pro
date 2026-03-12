@@ -21,6 +21,8 @@ const Estoque: React.FC = () => {
   const [taxPercentage, setTaxPercentage] = useState('0');
   const [askingPrice, setAskingPrice] = useState('');
   const [finalPrice, setFinalPrice] = useState('');
+  const [profitPercentage, setProfitPercentage] = useState('20');
+  const [customPercentage, setCustomPercentage] = useState('');
 
   // Summary State
   const [showSummary, setShowSummary] = useState(false);
@@ -51,10 +53,15 @@ const Estoque: React.FC = () => {
     const vAnunciado = Number(askingPrice);
     const vCusto = selectedProduct.costValue;
     const pTaxa = paymentMethod === 'Cartão de Crédito' ? Number(taxPercentage) : 0;
+    const pLucro = profitPercentage === 'custom' ? Number(customPercentage) : Number(profitPercentage);
     
     const taxAmount = vVenda * (pTaxa / 100);
     const discount = vAnunciado - vVenda;
     const profit = vVenda - vCusto - taxAmount;
+
+    const personalProfit = profit * (pLucro / 100);
+    const companyCash = profit - personalProfit;
+    const reinvestmentCapital = vCusto;
 
     const newSale: Sale = {
       id: crypto.randomUUID(),
@@ -69,7 +76,11 @@ const Estoque: React.FC = () => {
       installments: paymentMethod === 'Cartão de Crédito' ? Number(installments) : undefined,
       askingPrice: vAnunciado,
       discount,
-      taxAmount
+      taxAmount,
+      profitPercentage: pLucro,
+      personalProfit,
+      companyCash,
+      reinvestmentCapital
     };
 
     setSales([...sales, newSale]);
@@ -265,6 +276,34 @@ const Estoque: React.FC = () => {
                     </div>
                   </div>
 
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Distribuição de Lucro (Pro-labore %)</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {['10', '15', '20', '25', '30', 'custom'].map(p => (
+                        <button
+                          key={p}
+                          onClick={() => setProfitPercentage(p)}
+                          className={`p-2 rounded-xl border text-[10px] font-bold transition-all ${
+                            profitPercentage === p 
+                              ? 'bg-blue-500/20 border-blue-500 text-blue-400' 
+                              : 'bg-white/5 border-white/5 text-slate-400'
+                          }`}
+                        >
+                          {p === 'custom' ? 'Outro' : `${p}%`}
+                        </button>
+                      ))}
+                    </div>
+                    {profitPercentage === 'custom' && (
+                      <input 
+                        type="number" 
+                        placeholder="Digite a % personalizada"
+                        value={customPercentage}
+                        onChange={(e) => setCustomPercentage(e.target.value)}
+                        className="bg-white/5 border border-white/5 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-500/50 mt-1"
+                      />
+                    )}
+                  </div>
+
                   {Number(askingPrice) > Number(finalPrice) && (
                     <div className="bg-amber-500/10 p-3 rounded-xl border border-amber-500/20 flex justify-between items-center">
                       <span className="text-[10px] font-bold text-amber-500 uppercase">Desconto Aplicado</span>
@@ -323,9 +362,26 @@ const Estoque: React.FC = () => {
                     <span className="text-[10px] font-bold text-slate-500 uppercase">Taxas da Venda</span>
                     <span className="text-sm font-bold text-red-500">R$ {lastSale.taxAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                   </div>
-                  <div className="mt-2 p-4 bg-[#00c853]/10 border border-[#00c853]/20 rounded-2xl flex justify-between items-center">
-                    <span className="text-xs font-black text-[#00c853] uppercase tracking-widest">Lucro Total</span>
-                    <span className="text-xl font-black text-white">R$ {lastSale.profit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                  <div className="mt-2 p-4 bg-[#00c853]/10 border border-[#00c853]/20 rounded-2xl flex flex-col gap-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-black text-[#00c853] uppercase tracking-widest">Lucro Total</span>
+                      <span className="text-xl font-black text-white">R$ {lastSale.profit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 gap-2 pt-3 border-t border-[#00c853]/20">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase">Pro-labore ({lastSale.profitPercentage}%)</span>
+                        <span className="text-xs font-bold text-blue-400">R$ {lastSale.personalProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase">Caixa Empresa</span>
+                        <span className="text-xs font-bold text-purple-400">R$ {lastSale.companyCash.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase">Capital Reinvestimento</span>
+                        <span className="text-xs font-bold text-amber-400">R$ {lastSale.reinvestmentCapital.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 

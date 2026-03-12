@@ -17,6 +17,11 @@ const Ferramentas: React.FC = () => {
   const [taxas, setTaxas] = useState('');
   const precoSeguro = calcularPrecoSeguro(Number(custo), Number(margem), Number(taxas));
 
+  // Calculadora de Lucro Simples
+  const [custoCompra, setCustoCompra] = useState('');
+  const [lucroDesejado, setLucroDesejado] = useState('');
+  const precoIdeal = Number(custoCompra) * (1 + Number(lucroDesejado) / 100);
+
   const salvarPrecoSeguro = () => {
     localStorage.setItem('giro_preco_seguro', JSON.stringify(custo));
   };
@@ -33,6 +38,46 @@ const Ferramentas: React.FC = () => {
   return (
     <div className="flex flex-col gap-8 pb-10">
       <h2 className="text-xl font-black text-white uppercase tracking-tighter">Ferramentas</h2>
+
+      {/* 0) Calculadora de Lucro Simples */}
+      <div className="bg-[#121821] p-6 rounded-2xl border border-white/5 flex flex-col gap-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-[#00c853]/10 text-[#00c853] rounded-lg">
+            <Target size={20} />
+          </div>
+          <h3 className="font-bold text-white uppercase text-sm tracking-widest">Calculadora de Lucro</h3>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-2">
+            <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Comprei por</label>
+            <input 
+              type="number" 
+              value={custoCompra} 
+              onChange={(e) => setCustoCompra(e.target.value)} 
+              placeholder="0,00" 
+              className="bg-slate-800/50 border border-white/5 rounded-xl p-3 text-sm focus:outline-none" 
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Lucro Desejado %</label>
+            <input 
+              type="number" 
+              value={lucroDesejado} 
+              onChange={(e) => setLucroDesejado(e.target.value)} 
+              placeholder="0" 
+              className="bg-slate-800/50 border border-white/5 rounded-xl p-3 text-sm focus:outline-none" 
+            />
+          </div>
+        </div>
+
+        <div className="bg-[#00c853]/10 p-4 rounded-xl border border-[#00c853]/20 text-center">
+          <span className="text-[10px] text-[#00c853] font-bold uppercase block mb-1">Preço Ideal de Venda</span>
+          <span className="text-2xl font-black text-white">
+            R$ {isNaN(precoIdeal) || !isFinite(precoIdeal) ? '0,00' : precoIdeal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          </span>
+        </div>
+      </div>
 
       {/* A) Preço Seguro */}
       <div className="bg-[#121821] p-6 rounded-2xl border border-white/5 flex flex-col gap-6">

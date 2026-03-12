@@ -30,6 +30,10 @@ export interface Sale {
   askingPrice: number;
   discount: number;
   taxAmount: number;
+  profitPercentage: number;
+  personalProfit: number;
+  companyCash: number;
+  reinvestmentCapital: number;
 }
 
 export interface AppSettings {
