@@ -27,7 +27,7 @@ const Ferramentas: React.FC = () => {
   };
 
   // Giro Médio calculation
-  const soldProducts = products.filter(p => p.status === 'Vendido' && p.soldAt);
+  const soldProducts = products.filter(p => p.availability === 'Vendido' && p.soldAt);
   const avgGiro = soldProducts.length > 0
     ? soldProducts.reduce((acc, p) => {
         const diff = Math.ceil((p.soldAt! - p.createdAt) / (1000 * 60 * 60 * 24));

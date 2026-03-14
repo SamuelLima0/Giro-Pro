@@ -1,4 +1,12 @@
-export type ProductStatus = 'Em estoque' | 'Vendido';
+export type AvailabilityStatus = 'Em estoque' | 'Vendido';
+
+export type ProductCondition = 'Pronto para venda' | 'Aguardando reparo' | 'Em melhoria';
+
+export interface PriceHistoryEntry {
+  price: number;
+  date: string;
+  type: 'created' | 'price_update' | 'sold';
+}
 
 export interface Product {
   id: string;
@@ -11,9 +19,12 @@ export interface Product {
   taxPercentage: number;
   observations: string;
   image?: string; // Base64
-  status: ProductStatus;
+  photos?: string[];
+  availability: AvailabilityStatus;
+  status?: ProductCondition;
   createdAt: number;
   soldAt?: number;
+  priceHistory?: PriceHistoryEntry[];
 }
 
 export interface Sale {
@@ -25,8 +36,11 @@ export interface Sale {
   costValue: number;
   taxPercentage: number;
   profit: number;
-  paymentMethod: 'Dinheiro' | 'PIX' | 'Cartão de Débito' | 'Cartão de Crédito';
+  paymentMethod: 'Dinheiro' | 'PIX' | 'Cartão de Débito' | 'Cartão de Crédito' | 'Troca + Volta';
   installments?: number;
+  tradeItemName?: string;
+  tradeItemValue?: number;
+  cashDifference?: number;
   askingPrice: number;
   discount: number;
   taxAmount: number;

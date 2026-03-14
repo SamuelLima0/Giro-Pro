@@ -52,6 +52,10 @@ const Vendas: React.FC = () => {
                   <span className="text-[10px] text-slate-500 font-bold uppercase">Custo</span>
                   <span className="text-xs font-bold text-slate-300">R$ {sale.costValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                 </div>
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase">ROI</span>
+                  <span className="text-xs font-black text-blue-400">{((sale.profit / sale.costValue) * 100).toFixed(1)}%</span>
+                </div>
                 <div className="flex flex-col items-end">
                   <span className="text-[10px] text-slate-500 font-bold uppercase flex items-center gap-1">
                     <TrendingUp size={10} /> Lucro
@@ -97,6 +101,29 @@ const Vendas: React.FC = () => {
                   <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
                     <span className="text-[10px] font-bold text-slate-500 uppercase">Valor Vendido</span>
                     <span className="text-sm font-bold text-[#00c853]">R$ {selectedSale.salePrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">Forma de Pagamento</span>
+                    <span className="text-sm font-bold text-white">{selectedSale.paymentMethod}</span>
+                  </div>
+
+                  {selectedSale.paymentMethod === 'Troca + Volta' && (
+                    <>
+                      <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-blue-500/20">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">Item Recebido</span>
+                        <span className="text-sm font-bold text-blue-400">{selectedSale.tradeItemName}</span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-blue-500/20">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">Volta em Dinheiro</span>
+                        <span className="text-sm font-bold text-blue-400">R$ {selectedSale.cashDifference?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    </>
+                  )}
+
+                  <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">ROI (Retorno)</span>
+                    <span className="text-sm font-bold text-blue-400">{((selectedSale.profit / selectedSale.costValue) * 100).toFixed(1)}%</span>
                   </div>
                   
                   <div className="mt-2 p-4 bg-[#00c853]/10 border border-[#00c853]/20 rounded-2xl flex flex-col gap-4">

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { Product, Sale, AppSettings } from '../types';
-import { TrendingUp, DollarSign, ShoppingBag, RefreshCcw, Target } from 'lucide-react';
+import { TrendingUp, DollarSign, ShoppingBag, RefreshCcw, Target, Package, Wallet, Briefcase } from 'lucide-react';
 import { motion } from 'motion/react';
 
 const Dashboard: React.FC = () => {
@@ -19,7 +19,7 @@ const Dashboard: React.FC = () => {
       : 0;
 
     // Giro médio (dias)
-    const soldProducts = products.filter(p => p.status === 'Vendido' && p.soldAt);
+    const soldProducts = products.filter(p => p.availability === 'Vendido' && p.soldAt);
     const avgGiro = soldProducts.length > 0
       ? soldProducts.reduce((acc, p) => {
           const diff = Math.ceil((p.soldAt! - p.createdAt) / (1000 * 60 * 60 * 24));
@@ -36,6 +36,25 @@ const Dashboard: React.FC = () => {
     const currentMonthRevenue = currentMonthSales.reduce((acc, s) => acc + s.salePrice, 0);
     const goalProgress = Math.min((currentMonthRevenue / settings.monthlyGoal) * 100, 100);
 
+    // Valor Total do Estoque
+    const totalStockValue = products
+      .filter(p => p.availability === 'Em estoque')
+      .reduce((acc, p) => acc + p.costValue, 0);
+
+    const totalCompanyCash = sales.reduce((acc, s) => acc + (s.companyCash || 0), 0);
+    const totalCompanyCapital = totalStockValue + totalCompanyCash;
+
+    // Top Profitable Products
+    const profitByProduct = sales.reduce((acc: Record<string, number>, s) => {
+      acc[s.productName] = (acc[s.productName] || 0) + s.profit;
+      return acc;
+    }, {});
+
+    const topProfitableProducts = Object.entries(profitByProduct)
+      .map(([name, profit]) => ({ name, profit }))
+      .sort((a, b) => b.profit - a.profit)
+      .slice(0, 5);
+
     return {
       totalRevenue,
       totalProfit,
@@ -44,7 +63,11 @@ const Dashboard: React.FC = () => {
       totalSales: sales.length,
       totalReinvested: totalCost,
       goalProgress,
-      currentMonthRevenue
+      currentMonthRevenue,
+      totalStockValue,
+      totalCompanyCash,
+      totalCompanyCapital,
+      topProfitableProducts
     };
   }, [sales, products, settings.monthlyGoal]);
 
@@ -89,12 +112,47 @@ const Dashboard: React.FC = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-4">
+        <StatCard title="Capital Total da Empresa" value={stats.totalCompanyCapital} icon={Briefcase} colorClass="text-indigo-400" />
+        <StatCard title="Caixa da Empresa" value={stats.totalCompanyCash} icon={Wallet} colorClass="text-purple-400" />
+        <StatCard title="Lucro Total" value={stats.totalProfit} icon={TrendingUp} colorClass="text-[#00c853]" />
+        <StatCard title="Valor Total do Estoque" value={stats.totalStockValue} icon={Package} colorClass="text-emerald-400" />
         <StatCard title="Faturamento" value={stats.totalRevenue} icon={DollarSign} />
-        <StatCard title="Lucro Líquido" value={stats.totalProfit} icon={TrendingUp} />
         <StatCard title="Margem Média" value={stats.avgMargin.toFixed(1)} suffix="%" icon={Target} colorClass="text-blue-400" />
         <StatCard title="Giro Médio" value={stats.avgGiro.toFixed(0)} suffix=" dias" icon={RefreshCcw} colorClass="text-amber-400" />
         <StatCard title="Total Vendas" value={stats.totalSales} icon={ShoppingBag} colorClass="text-purple-400" />
-        <StatCard title="Reinvestido" value={stats.totalReinvested} icon={RefreshCcw} colorClass="text-indigo-400" />
+      </div>
+
+      {/* Top Profitable Products */}
+      <div className="mt-2">
+        <h3 className="text-white font-bold mb-4 flex items-center gap-2 text-sm uppercase tracking-widest">
+          Top produtos mais lucrativos
+        </h3>
+        <div className="flex flex-col gap-3">
+          {stats.topProfitableProducts.map((product, index) => (
+            <div key={product.name} className="flex items-center justify-between p-4 bg-[#121821] rounded-2xl border border-white/5">
+              <div className="flex items-center gap-3">
+                <span className="text-lg">
+                  {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}º`}
+                </span>
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-white">{product.name}</span>
+                  <span className="text-[10px] text-slate-500 uppercase font-bold">Ranking de Lucro</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-sm font-black text-[#00c853]">
+                  R$ {product.profit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
+                <div className="text-[10px] text-slate-500 font-bold uppercase">Lucro Total</div>
+              </div>
+            </div>
+          ))}
+          {stats.topProfitableProducts.length === 0 && (
+            <div className="text-center py-10 bg-[#121821] rounded-2xl border border-white/5 border-dashed">
+              <p className="text-slate-500 text-xs font-bold uppercase">Nenhuma venda registrada ainda.</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Recent Activity */}
