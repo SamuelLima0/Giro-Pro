@@ -12,6 +12,7 @@ import NovoProduto from './pages/NovoProduto';
 import Vendas from './pages/Vendas';
 import Relatorios from './pages/Relatorios';
 import Ferramentas from './pages/Ferramentas';
+import Buscas from './pages/Buscas';
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="estoque" element={<Estoque />} />
           <Route path="novo-produto" element={<NovoProduto />} />
           <Route path="vendas" element={<Vendas />} />
+          <Route path="buscas" element={<Buscas />} />
           <Route path="relatorios" element={<Relatorios />} />
           <Route path="ferramentas" element={<Ferramentas />} />
         </Route>

@@ -1,12 +1,13 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Package, ShoppingCart, BarChart3, Wrench } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, BarChart3, Wrench, Radar } from 'lucide-react';
 
 const BottomNav: React.FC = () => {
   const navItems = [
     { to: '/', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
     { to: '/estoque', icon: <Package size={20} />, label: 'Estoque' },
     { to: '/vendas', icon: <ShoppingCart size={20} />, label: 'Vendas' },
+    { to: '/buscas', icon: <Radar size={20} />, label: 'Buscas' },
     { to: '/relatorios', icon: <BarChart3 size={20} />, label: 'Relatórios' },
     { to: '/ferramentas', icon: <Wrench size={20} />, label: 'Ferramentas' },
   ];

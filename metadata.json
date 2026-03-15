@@ -1,5 +1,5 @@
 {
   "name": "Giro Pro",
   "description": "Sistema pessoal de BRICK (comprar, melhorar e revender) com dashboard e controle de estoque.",
-  "requestFramePermissions": []
+  "requestFramePermissions": ["geolocation"]
 }

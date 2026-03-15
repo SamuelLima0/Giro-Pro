@@ -53,3 +53,16 @@ export interface Sale {
 export interface AppSettings {
   monthlyGoal: number;
 }
+
+export interface AutoSearch {
+  id: string;
+  name: string;
+  term: string;
+  minPrice: number;
+  maxPrice: number;
+  marketplaces: string[];
+  radius: number;
+  frequency: number;
+  isActive: boolean;
+  createdAt: number;
+}

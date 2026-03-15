@@ -171,23 +171,27 @@ const Estoque: React.FC = () => {
     };
 
     setSales([...sales, newSale]);
-    setProducts(products.map(p => 
-      p.id === selectedProduct.id 
-        ? { 
-            ...p, 
-            availability: 'Vendido', 
-            soldAt: Date.now(),
-            priceHistory: [
-              ...(p.priceHistory || []),
-              {
-                price: vVenda,
-                date: new Date().toISOString().split('T')[0],
-                type: 'sold'
-              }
-            ]
-          } 
-        : p
-    ));
+    const updatedProducts = products.map(p => {
+      if (p.id === selectedProduct.id) {
+        const newQuantity = p.quantity - 1;
+        if (newQuantity <= 0) return null;
+        return {
+          ...p,
+          quantity: newQuantity,
+          priceHistory: [
+            ...(p.priceHistory || []),
+            {
+              price: vVenda,
+              date: new Date().toISOString().split('T')[0],
+              type: 'sold'
+            }
+          ]
+        };
+      }
+      return p;
+    }).filter((p): p is Product => p !== null);
+
+    setProducts(updatedProducts);
 
     setLastSale(newSale);
     setIsModalOpen(false);
@@ -212,7 +216,7 @@ const Estoque: React.FC = () => {
         <input 
           type="text" 
           placeholder="Buscar produto..."
-          className="w-full bg-[#121821] border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-[#00c853]/50 transition-colors"
+          className="w-full bg-[#121821] border border-white/5 rounded-2xl py-4 pl-14 pr-4 text-sm focus:outline-none focus:border-[#00c853]/50 transition-colors"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
