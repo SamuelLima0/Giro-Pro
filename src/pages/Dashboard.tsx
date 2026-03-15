@@ -46,7 +46,8 @@ const Dashboard: React.FC = () => {
 
     // Top Profitable Products
     const profitByProduct = sales.reduce((acc: Record<string, number>, s) => {
-      acc[s.productName] = (acc[s.productName] || 0) + s.profit;
+      const saleProfit = s.salePrice - s.costValue;
+      acc[s.productName] = (acc[s.productName] || 0) + saleProfit;
       return acc;
     }, {});
 
