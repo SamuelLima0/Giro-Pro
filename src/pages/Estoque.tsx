@@ -203,16 +203,12 @@ const Estoque: React.FC = () => {
     <div className="flex flex-col gap-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-black text-white uppercase tracking-tighter">Estoque</h2>
-        <button 
-          onClick={() => navigate('/novo-produto')}
-          className="bg-[#00c853] text-[#0b0f14] p-3 rounded-2xl shadow-[0_0_15px_rgba(0,200,83,0.3)] active:scale-95 transition-transform"
-        >
-          <Plus size={20} />
-        </button>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+      <div className="relative group">
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#00c853] transition-colors">
+          <Search size={18} />
+        </div>
         <input 
           type="text" 
           placeholder="Buscar produto..."
@@ -530,7 +526,7 @@ const Estoque: React.FC = () => {
                   </button>
                 </div>
 
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4 mb-4">
                   <div className="flex flex-col gap-2">
                     <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Como foi a venda?</label>
                     <div className="grid grid-cols-2 gap-2">
@@ -681,17 +677,29 @@ const Estoque: React.FC = () => {
                   )}
                 </div>
 
-                <button 
-                  onClick={handleConfirmSale}
-                  className="w-full bg-[#00c853] text-[#0b0f14] font-black py-4 rounded-2xl shadow-[0_0_20px_rgba(0,200,83,0.3)] active:scale-95 transition-transform uppercase tracking-widest text-sm"
-                >
-                  Confirmar Venda
-                </button>
+                <div className="pb-8">
+                  <button 
+                    onClick={handleConfirmSale}
+                    className="w-full bg-[#00c853] text-[#0b0f14] font-black py-5 rounded-2xl shadow-[0_0_20px_rgba(0,200,83,0.4)] active:scale-95 transition-transform uppercase tracking-widest text-sm"
+                  >
+                    Confirmar Venda
+                  </button>
+                </div>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+
+      {/* Floating Action Button */}
+      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40">
+        <button 
+          onClick={() => navigate('/novo-produto')}
+          className="bg-[#00c853] text-[#0b0f14] w-16 h-16 rounded-full shadow-[0_10px_25px_rgba(0,200,83,0.4)] flex items-center justify-center active:scale-90 transition-all hover:scale-105"
+        >
+          <Plus size={32} strokeWidth={3} />
+        </button>
+      </div>
 
       {/* Resumo da Venda */}
       <AnimatePresence>

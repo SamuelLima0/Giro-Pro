@@ -4,7 +4,37 @@ import { Product, ProductCondition } from '../types';
 import { Camera, ArrowLeft, Save, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const CATEGORIES = ['Eletrônicos', 'Móveis', 'Moda', 'Ferramentas', 'Automotivo', 'Outros'];
+const CATEGORIES = [
+  'Informática',
+  'Celular',
+  'Tablet',
+  'Notebook',
+  'Computadores',
+  'Eletrônicos',
+  'Videogame',
+  'TV / Áudio',
+  'Eletrodomésticos',
+  'Móveis',
+  'Decoração',
+  'Ferramentas',
+  'Máquinas',
+  'Peças Automotivas',
+  'Carros',
+  'Motos',
+  'Bicicletas',
+  'Imóveis',
+  'Instrumentos Musicais',
+  'Relógios',
+  'Perfumes',
+  'Roupas e Acessórios',
+  'Calçados',
+  'Joias / Bijuterias',
+  'Colecionáveis',
+  'Brinquedos',
+  'Esportes',
+  'Equipamentos Profissionais',
+  'Outros'
+];
 const CONDITIONS: ProductCondition[] = ['Pronto para venda', 'Aguardando reparo', 'Em melhoria'];
 
 const NovoProduto: React.FC = () => {
