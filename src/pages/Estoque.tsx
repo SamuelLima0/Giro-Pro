@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 
 const Estoque: React.FC = () => {
-  const [products, setProducts] = useLocalStorage<Product[]>('giropro_produtos', []);
+  const [products, setProducts] = useLocalStorage<Product[]>('products', []);
   const [sales, setSales] = useLocalStorage<Sale[]>('giropro_vendas', []);
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
@@ -14,9 +14,15 @@ const Estoque: React.FC = () => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   
-  // Form State
+  // Add Product Form State
+  const [newProductName, setNewProductName] = useState('');
+  const [newProductPrice, setNewProductPrice] = useState('');
+  const [newProductPhoto, setNewProductPhoto] = useState<string | undefined>(undefined);
+  const [saveError, setSaveError] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<Sale['paymentMethod']>('PIX');
   const [installments, setInstallments] = useState('1');
   const [taxPercentage, setTaxPercentage] = useState('0');
@@ -39,6 +45,74 @@ const Estoque: React.FC = () => {
         setTradeImage(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAddProductImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewProductPhoto(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const saveProduct = () => {
+    try {
+      // 2. Validate the form before saving
+      if (!newProductName || !newProductPrice) {
+        setSaveError('Preencha nome e valor do produto.');
+        return;
+      }
+
+      // 3. Fix LocalStorage saving
+      const newProduct: Product = {
+        id: crypto.randomUUID(),
+        name: newProductName,
+        category: 'Outros', // Default category
+        purchaseDate: new Date().toISOString().split('T')[0],
+        costValue: 0, // Default cost
+        salePrice: Number(newProductPrice),
+        quantity: 1,
+        taxPercentage: 0,
+        observations: '',
+        image: newProductPhoto,
+        photos: newProductPhoto ? [newProductPhoto] : [],
+        availability: 'Em estoque',
+        status: 'Pronto para venda',
+        createdAt: Date.now(),
+        priceHistory: [
+          {
+            price: Number(newProductPrice),
+            date: new Date().toISOString().split('T')[0],
+            type: 'created'
+          }
+        ]
+      };
+
+      // 4. If LocalStorage is empty, initialize it as an empty array
+      // (Handled by useLocalStorage hook default value [])
+      const currentProducts = [...products];
+      setProducts([newProduct, ...currentProducts]);
+
+      // 6. After saving
+      setSaveSuccess('Produto salvo com sucesso.');
+      setNewProductName('');
+      setNewProductPrice('');
+      setNewProductPhoto(undefined);
+      setSaveError('');
+
+      setTimeout(() => {
+        setIsAddProductModalOpen(false);
+        setSaveSuccess('');
+      }, 1500);
+
+    } catch (error) {
+      // 7. Console error logs if save fails
+      console.error('Erro ao salvar produto:', error);
+      setSaveError('Erro ao salvar produto. Tente novamente.');
     }
   };
 
@@ -698,12 +772,106 @@ const Estoque: React.FC = () => {
       {/* Floating Action Button */}
       <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40">
         <button 
-          onClick={() => navigate('/novo-produto')}
+          onClick={() => setIsAddProductModalOpen(true)}
           className="bg-[#00c853] text-[#0b0f14] w-16 h-16 rounded-full shadow-[0_10px_25px_rgba(0,200,83,0.4)] flex items-center justify-center active:scale-90 transition-all hover:scale-105"
         >
           <Plus size={32} strokeWidth={3} />
         </button>
       </div>
+
+      {/* Modal Novo Produto */}
+      <AnimatePresence>
+        {isAddProductModalOpen && (
+          <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#121821] w-full max-w-md rounded-3xl border border-white/10 overflow-hidden shadow-2xl"
+            >
+              <div className="p-6 flex flex-col gap-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-black text-white uppercase tracking-tighter">Novo Produto</h3>
+                  <button onClick={() => setIsAddProductModalOpen(false)} className="text-slate-500 hover:text-white">
+                    <X size={24} />
+                  </button>
+                </div>
+
+                <div className="flex flex-col gap-6">
+                  {/* Photo Upload */}
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="relative w-full aspect-square max-w-[160px] bg-[#0b0f14] rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden">
+                      {newProductPhoto ? (
+                        <img src={newProductPhoto} alt="Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <Camera size={32} className="text-slate-700" />
+                      )}
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handleAddProductImageUpload}
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                      />
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">Toque para adicionar foto</span>
+                  </div>
+
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Nome do Produto</label>
+                      <input 
+                        type="text" 
+                        placeholder="Ex: iPhone 13 Pro"
+                        value={newProductName}
+                        onChange={(e) => setNewProductName(e.target.value)}
+                        className="bg-white/5 border border-white/5 rounded-xl p-4 text-sm focus:outline-none focus:border-[#00c853]/50"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Preço de Venda (R$)</label>
+                      <input 
+                        type="number" 
+                        placeholder="0,00"
+                        value={newProductPrice}
+                        onChange={(e) => setNewProductPrice(e.target.value)}
+                        className="bg-white/5 border border-white/5 rounded-xl p-4 text-sm focus:outline-none focus:border-[#00c853]/50"
+                      />
+                    </div>
+                  </div>
+
+                  {saveError && (
+                    <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl text-red-500 text-xs font-bold text-center">
+                      {saveError}
+                    </div>
+                  )}
+
+                  {saveSuccess && (
+                    <div className="bg-[#00c853]/10 border border-[#00c853]/20 p-4 rounded-xl text-[#00c853] text-xs font-bold text-center">
+                      {saveSuccess}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-2 pt-4">
+                  <button 
+                    onClick={saveProduct}
+                    className="w-full bg-[#00c853] text-[#0b0f14] font-black py-4 rounded-2xl shadow-[0_0_20px_rgba(0,200,83,0.3)] active:scale-95 transition-transform uppercase tracking-widest text-xs"
+                  >
+                    Salvar Produto
+                  </button>
+                  <button 
+                    onClick={() => setIsAddProductModalOpen(false)}
+                    className="w-full bg-white/5 hover:bg-white/10 text-slate-400 font-bold py-4 rounded-2xl transition-colors uppercase tracking-widest text-[10px]"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Resumo da Venda */}
       <AnimatePresence>

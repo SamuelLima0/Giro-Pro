@@ -5,7 +5,7 @@ import { TrendingUp, DollarSign, ShoppingBag, RefreshCcw, Target, Package, Walle
 import { motion } from 'motion/react';
 
 const Dashboard: React.FC = () => {
-  const [products] = useLocalStorage<Product[]>('giropro_produtos', []);
+  const [products] = useLocalStorage<Product[]>('products', []);
   const [sales] = useLocalStorage<Sale[]>('giropro_vendas', []);
   const [settings] = useLocalStorage<AppSettings>('giropro_settings', { monthlyGoal: 5000 });
 

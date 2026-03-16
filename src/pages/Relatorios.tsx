@@ -5,7 +5,7 @@ import { BarChart3, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const Relatorios: React.FC = () => {
   const [sales] = useLocalStorage<Sale[]>('giropro_vendas', []);
-  const [products] = useLocalStorage<Product[]>('giropro_produtos', []);
+  const [products] = useLocalStorage<Product[]>('products', []);
   const [viewType, setViewType] = useState<'mensal' | 'anual'>('mensal');
   const [currentDate, setCurrentDate] = useState(new Date());
 

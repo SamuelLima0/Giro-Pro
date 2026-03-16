@@ -6,7 +6,7 @@ import { calcularPrecoSeguro } from '../utils/calculos';
 
 const Ferramentas: React.FC = () => {
   const [settings, setSettings] = useLocalStorage<AppSettings>('giropro_settings', { monthlyGoal: 5000 });
-  const [products] = useLocalStorage<Product[]>('giropro_produtos', []);
+  const [products] = useLocalStorage<Product[]>('products', []);
   
   // Preço Seguro State
   const [custo, setCusto] = useState(() => {

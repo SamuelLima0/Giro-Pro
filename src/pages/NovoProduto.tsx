@@ -38,9 +38,12 @@ const CATEGORIES = [
 const CONDITIONS: ProductCondition[] = ['Pronto para venda', 'Aguardando reparo', 'Em melhoria'];
 
 const NovoProduto: React.FC = () => {
-  const [products, setProducts] = useLocalStorage<Product[]>('giropro_produtos', []);
+  const [products, setProducts] = useLocalStorage<Product[]>('products', []);
   const navigate = useNavigate();
   const [photos, setPhotos] = useState<(string | undefined)[]>(Array(5).fill(undefined));
+
+  const [saveError, setSaveError] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState('');
 
   const handleImageUpload = (index: number) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -55,38 +58,68 @@ const NovoProduto: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const saveProduct = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    
-    const validPhotos = photos.filter((p): p is string => p !== undefined);
+    try {
+      const formData = new FormData(e.currentTarget);
+      const name = formData.get('name') as string;
+      const salePrice = formData.get('salePrice');
 
-    const newProduct: Product = {
-      id: crypto.randomUUID(),
-      name: formData.get('name') as string,
-      category: formData.get('category') as string,
-      purchaseDate: formData.get('purchaseDate') as string,
-      costValue: Number(formData.get('costValue')),
-      salePrice: Number(formData.get('salePrice')),
-      quantity: Number(formData.get('quantity')),
-      taxPercentage: Number(formData.get('taxPercentage')),
-      observations: formData.get('observations') as string,
-      status: formData.get('status') as ProductCondition,
-      image: validPhotos[0],
-      photos: validPhotos,
-      availability: 'Em estoque',
-      createdAt: Date.now(),
-      priceHistory: [
-        {
-          price: Number(formData.get('costValue')),
-          date: new Date().toISOString().split('T')[0],
-          type: 'created'
-        }
-      ]
-    };
+      // 2. Validate the form before saving
+      if (!name || !salePrice) {
+        setSaveError('Preencha nome e valor do produto.');
+        return;
+      }
+      
+      const validPhotos = photos.filter((p): p is string => p !== undefined);
 
-    setProducts([newProduct, ...products]);
-    navigate('/estoque');
+      // 3. Fix LocalStorage saving
+      const newProduct: Product = {
+        id: crypto.randomUUID(),
+        name: name,
+        category: formData.get('category') as string,
+        purchaseDate: formData.get('purchaseDate') as string,
+        costValue: Number(formData.get('costValue')),
+        salePrice: Number(salePrice),
+        quantity: Number(formData.get('quantity')),
+        taxPercentage: Number(formData.get('taxPercentage')),
+        observations: formData.get('observations') as string,
+        status: formData.get('status') as ProductCondition,
+        image: validPhotos[0],
+        photos: validPhotos,
+        availability: 'Em estoque',
+        createdAt: Date.now(),
+        // Adding fields requested in example structure
+        // @ts-ignore
+        price: Number(salePrice),
+        // @ts-ignore
+        photo: validPhotos[0],
+        priceHistory: [
+          {
+            price: Number(formData.get('costValue')),
+            date: new Date().toISOString().split('T')[0],
+            type: 'created'
+          }
+        ]
+      };
+
+      // 4. If LocalStorage is empty, initialize it as an empty array
+      // (Handled by useLocalStorage hook)
+      setProducts([newProduct, ...products]);
+
+      // 6. After saving
+      setSaveSuccess('Produto salvo com sucesso.');
+      setSaveError('');
+
+      setTimeout(() => {
+        navigate('/estoque');
+      }, 1500);
+
+    } catch (error) {
+      // 7. Console error logs if save fails
+      console.error('Erro ao salvar produto:', error);
+      setSaveError('Erro ao salvar produto. Tente novamente.');
+    }
   };
 
   return (
@@ -98,7 +131,7 @@ const NovoProduto: React.FC = () => {
         <h2 className="text-xl font-black text-white uppercase tracking-tighter">Novo Produto</h2>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <form onSubmit={saveProduct} className="flex flex-col gap-6">
         {/* Photos Upload Section */}
         <div className="flex flex-col gap-3">
           <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Fotos do Produto (Máx 5)</label>
@@ -123,6 +156,17 @@ const NovoProduto: React.FC = () => {
         </div>
 
         <div className="flex flex-col gap-4">
+          {saveError && (
+            <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl text-red-500 text-xs font-bold text-center">
+              {saveError}
+            </div>
+          )}
+
+          {saveSuccess && (
+            <div className="bg-[#00c853]/10 border border-[#00c853]/20 p-4 rounded-xl text-[#00c853] text-xs font-bold text-center">
+              {saveSuccess}
+            </div>
+          )}
           <div className="flex flex-col gap-2">
             <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Nome do Produto</label>
             <input name="name" required placeholder="Ex: iPhone 13 Pro" className="bg-[#121821] border border-white/5 rounded-2xl p-4 text-sm focus:outline-none focus:border-[#00c853]/50" />
