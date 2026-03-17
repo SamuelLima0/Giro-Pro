@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { AutoSearch } from '../types';
-import { Radar, Plus, List, X, Trash2, Edit2, Power, MapPin, Clock, ShoppingBag, Bell } from 'lucide-react';
+import { Radar, Plus, List, X, Trash2, Edit2, Power, MapPin, Clock, ShoppingBag, Bell, LogIn, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { auth, signInWithGoogle } from '../firebase';
+import { onAuthStateChanged, User, signOut } from 'firebase/auth';
+import { salvarBusca, listarBuscas, atualizarBusca, excluirBusca } from '../services/buscaService';
 
 const Buscas: React.FC = () => {
   const [searches, setSearches] = useLocalStorage<AutoSearch[]>('autoSearches', []);
   const [view, setView] = useState<'main' | 'create' | 'list'>('main');
   const [editingSearch, setEditingSearch] = useState<AutoSearch | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // Form State
   const [name, setName] = useState('');
@@ -17,6 +22,66 @@ const Buscas: React.FC = () => {
   const [selectedMarketplaces, setSelectedMarketplaces] = useState<string[]>([]);
   const [radius, setRadius] = useState('40');
   const [frequency, setFrequency] = useState('30');
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogin = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error("Login failed", error);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Logout failed", error);
+    }
+  };
+
+  const syncWithFirestore = async () => {
+    if (!user) return;
+    try {
+      const firestoreSearches = await listarBuscas();
+      if (firestoreSearches) {
+        // Merge or replace local searches with Firestore ones
+        const mappedSearches: AutoSearch[] = firestoreSearches.map(fs => ({
+          id: fs.id,
+          name: fs.produto, // Using 'produto' as name for simplicity or mapping correctly
+          term: fs.produto,
+          minPrice: 0, // Firestore schema doesn't have minPrice yet, adding default
+          maxPrice: fs.precoMax,
+          marketplaces: ['OLX'], // Default
+          radius: 40,
+          frequency: 30,
+          isActive: fs.ativo,
+          createdAt: fs.createdAt || Date.now()
+        }));
+        
+        // If local is empty, use firestore. If not, maybe merge?
+        // For now, let's prioritize Firestore for logged in users
+        if (mappedSearches.length > 0) {
+          setSearches(mappedSearches);
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao listar buscas do Firestore", error);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      syncWithFirestore();
+    }
+  }, [user]);
 
   const marketplaces = ['OLX', 'Facebook Marketplace', 'Enjoei'];
   const distances = ['10', '20', '30', '40', '50', '100'];
@@ -49,34 +114,54 @@ const Buscas: React.FC = () => {
     setFrequency('30');
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!name || !term || !minPrice || !maxPrice || selectedMarketplaces.length === 0) {
       alert('Por favor, preencha todos os campos obrigatórios.');
       return;
     }
 
-    const newSearch: AutoSearch = {
-      id: editingSearch?.id || crypto.randomUUID(),
-      name,
-      term,
-      minPrice: Number(minPrice),
-      maxPrice: Number(maxPrice),
-      marketplaces: selectedMarketplaces,
-      radius: Number(radius),
-      frequency: Number(frequency),
-      isActive: editingSearch ? editingSearch.isActive : true,
-      createdAt: editingSearch ? editingSearch.createdAt : Date.now()
-    };
+    try {
+      let firestoreId = editingSearch?.id;
 
-    if (editingSearch) {
-      setSearches(searches.map(s => s.id === editingSearch.id ? newSearch : s));
-    } else {
-      setSearches([newSearch, ...searches]);
+      // Save to Firestore if user is logged in
+      if (user) {
+        if (editingSearch && editingSearch.id.length > 20) { // Simple check if it's a Firestore ID
+          await atualizarBusca(editingSearch.id, {
+            produto: term,
+            precoMax: Number(maxPrice),
+            ativo: true
+          });
+        } else {
+          firestoreId = await salvarBusca(term, Number(maxPrice)) || crypto.randomUUID();
+        }
+      }
+
+      const newSearch: AutoSearch = {
+        id: firestoreId || crypto.randomUUID(),
+        name,
+        term,
+        minPrice: Number(minPrice),
+        maxPrice: Number(maxPrice),
+        marketplaces: selectedMarketplaces,
+        radius: Number(radius),
+        frequency: Number(frequency),
+        isActive: editingSearch ? editingSearch.isActive : true,
+        createdAt: editingSearch ? editingSearch.createdAt : Date.now()
+      };
+
+      if (editingSearch) {
+        setSearches(searches.map(s => s.id === editingSearch.id ? newSearch : s));
+      } else {
+        setSearches([newSearch, ...searches]);
+      }
+
+      setView('list');
+      setEditingSearch(null);
+      resetForm();
+    } catch (error) {
+      console.error("Erro ao salvar busca:", error);
+      alert("Erro ao salvar busca no banco de dados.");
     }
-
-    setView('list');
-    setEditingSearch(null);
-    resetForm();
   };
 
   const toggleMarketplace = (mp: string) => {
@@ -87,13 +172,32 @@ const Buscas: React.FC = () => {
     }
   };
 
-  const toggleActive = (id: string) => {
-    setSearches(searches.map(s => s.id === id ? { ...s, isActive: !s.isActive } : s));
+  const toggleActive = async (id: string) => {
+    const search = searches.find(s => s.id === id);
+    if (!search) return;
+
+    const newStatus = !search.isActive;
+    
+    try {
+      if (user && id.length > 20) {
+        await atualizarBusca(id, { ativo: newStatus });
+      }
+      setSearches(searches.map(s => s.id === id ? { ...s, isActive: newStatus } : s));
+    } catch (error) {
+      console.error("Erro ao atualizar status:", error);
+    }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Deseja excluir esta busca?')) {
-      setSearches(searches.filter(s => s.id !== id));
+      try {
+        if (user && id.length > 20) {
+          await excluirBusca(id);
+        }
+        setSearches(searches.filter(s => s.id !== id));
+      } catch (error) {
+        console.error("Erro ao excluir busca:", error);
+      }
     }
   };
 
@@ -131,12 +235,53 @@ const Buscas: React.FC = () => {
     return () => clearInterval(interval);
   }, [searches]);
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[80vh] gap-6 p-6">
+        <div className="p-8 bg-[#121821] rounded-full text-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.1)]">
+          <Radar size={64} />
+        </div>
+        <div className="text-center flex flex-col gap-2">
+          <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Acesso Restrito</h2>
+          <p className="text-slate-400 text-sm max-w-[280px]">
+            Conecte sua conta para salvar suas buscas na nuvem e receber alertas em tempo real.
+          </p>
+        </div>
+        <button 
+          onClick={handleLogin}
+          className="w-full max-w-[280px] bg-white text-black font-black py-4 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-transform uppercase tracking-widest text-xs"
+        >
+          <LogIn size={18} /> Entrar com Google
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6 pb-24">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-black text-white uppercase tracking-tighter">Buscas Automáticas</h2>
-        <div className="p-2 bg-blue-500/20 text-blue-400 rounded-full animate-pulse">
-          <Radar size={20} />
+        <div className="flex items-center gap-3">
+          {user && (
+            <button 
+              onClick={handleLogout}
+              className="p-2 bg-red-500/10 text-red-500 rounded-lg"
+              title="Sair"
+            >
+              <LogOut size={18} />
+            </button>
+          )}
+          <div className="p-2 bg-blue-500/20 text-blue-400 rounded-full animate-pulse">
+            <Radar size={20} />
+          </div>
         </div>
       </div>
 

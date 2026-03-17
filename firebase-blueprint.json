@@ -1,0 +1,38 @@
+{
+  "entities": {
+    "Busca": {
+      "title": "Busca",
+      "description": "Configuração de busca automática de oportunidades",
+      "type": "object",
+      "properties": {
+        "produto": {
+          "type": "string",
+          "description": "Nome do produto a ser buscado"
+        },
+        "precoMax": {
+          "type": "number",
+          "description": "Preço máximo desejado"
+        },
+        "ativo": {
+          "type": "boolean",
+          "description": "Se a busca está ativa"
+        },
+        "userId": {
+          "type": "string",
+          "description": "ID do usuário que criou a busca"
+        },
+        "createdAt": {
+          "type": "number",
+          "description": "Timestamp de criação"
+        }
+      },
+      "required": ["produto", "precoMax", "ativo", "userId", "createdAt"]
+    }
+  },
+  "firestore": {
+    "buscas": {
+      "schema": "Busca",
+      "description": "Coleção de buscas de oportunidades"
+    }
+  }
+}

@@ -1,0 +1,65 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: buscas
+    // Document ID: auto-generated
+    // Fields:
+    //   - produto: string (required) - Nome do produto
+    //   - precoMax: number (required) - Preço máximo
+    //   - ativo: boolean (required) - Status da busca
+    //   - userId: string (required) - ID do proprietário
+    //   - createdAt: number (required) - Timestamp
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidBusca(data) {
+      return hasOnlyAllowedFields(['produto', 'precoMax', 'ativo', 'userId', 'createdAt']) &&
+             data.produto is string && data.produto.size() > 0 && data.produto.size() < 100 &&
+             data.precoMax is number && data.precoMax >= 0 &&
+             data.ativo is bool &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.createdAt is number;
+    }
+
+    match /buscas/{buscaId} {
+      allow read: if isAuthenticated() && isDocOwner();
+      allow create: if isAuthenticated() && isValidBusca(request.resource.data);
+      allow update: if isAuthenticated() && isDocOwner() && isValidBusca(request.resource.data);
+      allow delete: if isAuthenticated() && isDocOwner();
+    }
+
+    match /users/{userId} {
+      function isAdmin() {
+        return isAuthenticated() &&
+          (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+            (request.auth.token.email == "karolynevalente85@gmail.com" && request.auth.token.email_verified == true));
+      }
+      
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId) || isAdmin();
+    }
+  }
+}
