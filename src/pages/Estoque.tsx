@@ -6,8 +6,10 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 
 const Estoque: React.FC = () => {
-  const [products, setProducts] = useLocalStorage<Product[]>('products', []);
-  const [sales, setSales] = useLocalStorage<Sale[]>('giropro_vendas', []);
+  const [productsRaw, setProducts] = useLocalStorage<Product[]>('products', []);
+  const products = Array.isArray(productsRaw) ? productsRaw : [];
+  const [salesRaw, setSales] = useLocalStorage<Sale[]>('giropro_vendas', []);
+  const sales = Array.isArray(salesRaw) ? salesRaw : [];
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
 
@@ -86,47 +88,60 @@ const Estoque: React.FC = () => {
 
   const saveProduct = () => {
     try {
-      // 2. Validate the form before saving
-      if (!newProductName || !newProductEstimatedPrice) {
-        setSaveError('Preencha nome e valor do produto.');
+      // 1. Validate required fields before saving
+      if (!newProductName || !newProductBaseCost) {
+        setSaveError('Preencha os campos obrigatórios.');
         return;
       }
 
-      // 3. Fix LocalStorage saving
+      // 2. Ensure all numeric fields are converted safely
+      const baseCost = Number(newProductBaseCost) || 0;
+      const estimatedPrice = Number(newProductEstimatedPrice) || 0;
+      const stock = Number(newProductStock) || 0;
+      
+      // 3. Ensure extraCosts is always an array
+      const extraCosts = Array.isArray(newProductExtraCosts) ? newProductExtraCosts : [];
+
+      const totalExtraCosts = extraCosts.reduce((sum, cost) => sum + (Number(cost.value) || 0), 0);
+      const totalCost = baseCost + totalExtraCosts;
+
+      // 4. Fix LocalStorage saving
       const newProduct: Product = {
         id: crypto.randomUUID(),
         name: newProductName,
-        category: newProductCategory,
+        category: newProductCategory || 'Outros',
         purchaseDate: new Date().toISOString().split('T')[0],
         costValue: totalCost,
-        baseCost: Number(newProductBaseCost),
-        salePrice: Number(newProductEstimatedPrice),
-        estimatedPrice: Number(newProductEstimatedPrice),
-        quantity: Number(newProductStock),
-        stock: Number(newProductStock),
+        baseCost: baseCost,
+        salePrice: estimatedPrice,
+        estimatedPrice: estimatedPrice,
+        quantity: stock,
+        stock: stock,
         taxPercentage: 0,
-        observations: newProductNotes,
-        notes: newProductNotes,
-        location: newProductLocation,
-        extraCosts: newProductExtraCosts,
+        observations: newProductNotes || '',
+        notes: newProductNotes || '',
+        location: newProductLocation || '',
+        extraCosts: extraCosts,
         image: newProductPhoto,
         photo: newProductPhoto,
         photos: newProductPhoto ? [newProductPhoto] : [],
         availability: 'Em estoque',
-        status: newProductStatus,
+        status: newProductStatus || 'Pronto para venda',
         createdAt: Date.now(),
         priceHistory: [
           {
-            price: Number(newProductEstimatedPrice),
+            price: estimatedPrice,
             date: new Date().toISOString().split('T')[0],
             type: 'created'
           }
         ]
       };
 
-      // 4. If LocalStorage is empty, initialize it as an empty array
-      // (Handled by useLocalStorage hook default value [])
-      setProducts(prev => [newProduct, ...prev]);
+      // 5. Update LocalStorage safely via setProducts (which uses useLocalStorage hook)
+      setProducts(prev => {
+        const currentProducts = Array.isArray(prev) ? prev : [];
+        return [newProduct, ...currentProducts];
+      });
 
       // 6. After saving
       setSaveSuccess('Produto salvo com sucesso.');
@@ -148,8 +163,8 @@ const Estoque: React.FC = () => {
       }, 1500);
 
     } catch (error) {
-      // 7. Console error logs if save fails
-      console.error('Erro ao salvar produto:', error);
+      console.error("Save product error:", error);
+      alert("Ocorreu um erro ao salvar o produto.");
       setSaveError('Erro ao salvar produto. Tente novamente.');
     }
   };
@@ -340,7 +355,7 @@ const Estoque: React.FC = () => {
 
       <div className="flex flex-col gap-4">
         <AnimatePresence>
-          {filteredProducts.map(product => (
+          {Array.isArray(filteredProducts) && filteredProducts.map(product => (
             <motion.div 
               layout
               key={product.id}

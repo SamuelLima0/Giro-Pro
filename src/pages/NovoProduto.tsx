@@ -38,7 +38,8 @@ const CATEGORIES = [
 const CONDITIONS: ProductCondition[] = ['Pronto para venda', 'Aguardando reparo', 'Em melhoria'];
 
 const NovoProduto: React.FC = () => {
-  const [products, setProducts] = useLocalStorage<Product[]>('products', []);
+  const [productsRaw, setProducts] = useLocalStorage<Product[]>('products', []);
+  const products = Array.isArray(productsRaw) ? productsRaw : [];
   const navigate = useNavigate();
   const [photos, setPhotos] = useState<(string | undefined)[]>(Array(5).fill(undefined));
 
@@ -63,51 +64,56 @@ const NovoProduto: React.FC = () => {
     try {
       const formData = new FormData(e.currentTarget);
       const name = formData.get('name') as string;
-      const salePrice = formData.get('salePrice');
+      const baseCost = Number(formData.get('costValue')) || 0;
+      const salePrice = Number(formData.get('salePrice')) || 0;
+      const quantity = Number(formData.get('quantity')) || 0;
+      const taxPercentage = Number(formData.get('taxPercentage')) || 0;
 
-      // 2. Validate the form before saving
-      if (!name || !salePrice) {
-        setSaveError('Preencha nome e valor do produto.');
+      // 1. Validate required fields before saving
+      if (!name || !baseCost) {
+        setSaveError('Preencha os campos obrigatórios.');
         return;
       }
       
       const validPhotos = photos.filter((p): p is string => p !== undefined);
 
-      // 3. Fix LocalStorage saving
+      // 2. Fix LocalStorage saving
       const newProduct: Product = {
         id: crypto.randomUUID(),
         name: name,
-        category: formData.get('category') as string,
-        purchaseDate: formData.get('purchaseDate') as string,
-        costValue: Number(formData.get('costValue')),
-        salePrice: Number(salePrice),
-        quantity: Number(formData.get('quantity')),
-        taxPercentage: Number(formData.get('taxPercentage')),
-        observations: formData.get('observations') as string,
-        status: formData.get('status') as ProductCondition,
+        category: (formData.get('category') as string) || 'Outros',
+        purchaseDate: (formData.get('purchaseDate') as string) || new Date().toISOString().split('T')[0],
+        costValue: baseCost,
+        baseCost: baseCost,
+        salePrice: salePrice,
+        estimatedPrice: salePrice,
+        quantity: quantity,
+        stock: quantity,
+        taxPercentage: taxPercentage,
+        observations: (formData.get('observations') as string) || '',
+        notes: (formData.get('observations') as string) || '',
+        status: (formData.get('status') as ProductCondition) || 'Pronto para venda',
         image: validPhotos[0],
+        photo: validPhotos[0],
         photos: validPhotos,
         availability: 'Em estoque',
         createdAt: Date.now(),
-        // Adding fields requested in example structure
-        // @ts-ignore
-        price: Number(salePrice),
-        // @ts-ignore
-        photo: validPhotos[0],
         priceHistory: [
           {
-            price: Number(formData.get('costValue')),
+            price: baseCost,
             date: new Date().toISOString().split('T')[0],
             type: 'created'
           }
         ]
       };
 
-      // 4. If LocalStorage is empty, initialize it as an empty array
-      // (Handled by useLocalStorage hook)
-      setProducts(prev => [newProduct, ...prev]);
+      // 3. Update LocalStorage safely
+      setProducts(prev => {
+        const currentProducts = Array.isArray(prev) ? prev : [];
+        return [newProduct, ...currentProducts];
+      });
 
-      // 6. After saving
+      // 4. After saving
       setSaveSuccess('Produto salvo com sucesso.');
       setSaveError('');
 
@@ -116,8 +122,8 @@ const NovoProduto: React.FC = () => {
       }, 1500);
 
     } catch (error) {
-      // 7. Console error logs if save fails
-      console.error('Erro ao salvar produto:', error);
+      console.error("Save product error:", error);
+      alert("Ocorreu um erro ao salvar o produto.");
       setSaveError('Erro ao salvar produto. Tente novamente.');
     }
   };

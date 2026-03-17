@@ -4,8 +4,10 @@ import { Sale, Product } from '../types';
 import { BarChart3, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const Relatorios: React.FC = () => {
-  const [sales] = useLocalStorage<Sale[]>('giropro_vendas', []);
-  const [products] = useLocalStorage<Product[]>('products', []);
+  const [salesRaw] = useLocalStorage<Sale[]>('giropro_vendas', []);
+  const sales = Array.isArray(salesRaw) ? salesRaw : [];
+  const [productsRaw] = useLocalStorage<Product[]>('products', []);
+  const products = Array.isArray(productsRaw) ? productsRaw : [];
   const [viewType, setViewType] = useState<'mensal' | 'anual'>('mensal');
   const [currentDate, setCurrentDate] = useState(new Date());
 

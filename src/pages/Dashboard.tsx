@@ -5,8 +5,10 @@ import { TrendingUp, DollarSign, ShoppingBag, RefreshCcw, Target, Package, Walle
 import { motion } from 'motion/react';
 
 const Dashboard: React.FC = () => {
-  const [products] = useLocalStorage<Product[]>('products', []);
-  const [sales] = useLocalStorage<Sale[]>('giropro_vendas', []);
+  const [productsRaw] = useLocalStorage<Product[]>('products', []);
+  const products = Array.isArray(productsRaw) ? productsRaw : [];
+  const [salesRaw] = useLocalStorage<Sale[]>('giropro_vendas', []);
+  const sales = Array.isArray(salesRaw) ? salesRaw : [];
   const [settings] = useLocalStorage<AppSettings>('giropro_settings', { monthlyGoal: 5000 });
 
   const stats = useMemo(() => {
