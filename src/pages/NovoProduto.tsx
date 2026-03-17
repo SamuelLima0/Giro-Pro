@@ -105,7 +105,7 @@ const NovoProduto: React.FC = () => {
 
       // 4. If LocalStorage is empty, initialize it as an empty array
       // (Handled by useLocalStorage hook)
-      setProducts([newProduct, ...products]);
+      setProducts(prev => [newProduct, ...prev]);
 
       // 6. After saving
       setSaveSuccess('Produto salvo com sucesso.');

@@ -19,7 +19,17 @@ const Estoque: React.FC = () => {
   
   // Add Product Form State
   const [newProductName, setNewProductName] = useState('');
-  const [newProductPrice, setNewProductPrice] = useState('');
+  const [newProductCategory, setNewProductCategory] = useState('Outros');
+  const [newProductBaseCost, setNewProductBaseCost] = useState('');
+  const [newProductEstimatedPrice, setNewProductEstimatedPrice] = useState('');
+  const [newProductStock, setNewProductStock] = useState('1');
+  const [newProductStatus, setNewProductStatus] = useState<Product['status']>('Pronto para venda');
+  const [newProductLocation, setNewProductLocation] = useState('');
+  const [newProductNotes, setNewProductNotes] = useState('');
+  const [newProductExtraCosts, setNewProductExtraCosts] = useState<{name: string, value: number}[]>([]);
+  const [extraCostName, setExtraCostName] = useState('');
+  const [extraCostValue, setExtraCostValue] = useState('');
+  
   const [newProductPhoto, setNewProductPhoto] = useState<string | undefined>(undefined);
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState('');
@@ -59,10 +69,25 @@ const Estoque: React.FC = () => {
     }
   };
 
+  const addExtraCost = () => {
+    if (extraCostName && extraCostValue) {
+      setNewProductExtraCosts([...newProductExtraCosts, { name: extraCostName, value: Number(extraCostValue) }]);
+      setExtraCostName('');
+      setExtraCostValue('');
+    }
+  };
+
+  const removeExtraCost = (index: number) => {
+    setNewProductExtraCosts(newProductExtraCosts.filter((_, i) => i !== index));
+  };
+
+  const totalExtraCosts = newProductExtraCosts.reduce((sum, cost) => sum + cost.value, 0);
+  const totalCost = Number(newProductBaseCost || 0) + totalExtraCosts;
+
   const saveProduct = () => {
     try {
       // 2. Validate the form before saving
-      if (!newProductName || !newProductPrice) {
+      if (!newProductName || !newProductEstimatedPrice) {
         setSaveError('Preencha nome e valor do produto.');
         return;
       }
@@ -71,21 +96,28 @@ const Estoque: React.FC = () => {
       const newProduct: Product = {
         id: crypto.randomUUID(),
         name: newProductName,
-        category: 'Outros', // Default category
+        category: newProductCategory,
         purchaseDate: new Date().toISOString().split('T')[0],
-        costValue: 0, // Default cost
-        salePrice: Number(newProductPrice),
-        quantity: 1,
+        costValue: totalCost,
+        baseCost: Number(newProductBaseCost),
+        salePrice: Number(newProductEstimatedPrice),
+        estimatedPrice: Number(newProductEstimatedPrice),
+        quantity: Number(newProductStock),
+        stock: Number(newProductStock),
         taxPercentage: 0,
-        observations: '',
+        observations: newProductNotes,
+        notes: newProductNotes,
+        location: newProductLocation,
+        extraCosts: newProductExtraCosts,
         image: newProductPhoto,
+        photo: newProductPhoto,
         photos: newProductPhoto ? [newProductPhoto] : [],
         availability: 'Em estoque',
-        status: 'Pronto para venda',
+        status: newProductStatus,
         createdAt: Date.now(),
         priceHistory: [
           {
-            price: Number(newProductPrice),
+            price: Number(newProductEstimatedPrice),
             date: new Date().toISOString().split('T')[0],
             type: 'created'
           }
@@ -94,13 +126,19 @@ const Estoque: React.FC = () => {
 
       // 4. If LocalStorage is empty, initialize it as an empty array
       // (Handled by useLocalStorage hook default value [])
-      const currentProducts = [...products];
-      setProducts([newProduct, ...currentProducts]);
+      setProducts(prev => [newProduct, ...prev]);
 
       // 6. After saving
       setSaveSuccess('Produto salvo com sucesso.');
       setNewProductName('');
-      setNewProductPrice('');
+      setNewProductCategory('Outros');
+      setNewProductBaseCost('');
+      setNewProductEstimatedPrice('');
+      setNewProductStock('1');
+      setNewProductStatus('Pronto para venda');
+      setNewProductLocation('');
+      setNewProductNotes('');
+      setNewProductExtraCosts([]);
       setNewProductPhoto(undefined);
       setSaveError('');
 
@@ -125,14 +163,20 @@ const Estoque: React.FC = () => {
       category: 'Outros',
       purchaseDate: new Date().toISOString().split('T')[0],
       costValue: lastSale.tradeItemValue || 0,
+      baseCost: lastSale.tradeItemValue || 0,
       salePrice: lastSale.tradeItemValue || 0,
+      estimatedPrice: lastSale.tradeItemValue || 0,
       quantity: 1,
+      stock: 1,
       taxPercentage: 0,
       observations: `Recebido em troca na venda de ${lastSale.productName}`,
+      notes: `Recebido em troca na venda de ${lastSale.productName}`,
       image: tradeImage,
+      photo: tradeImage,
       availability: 'Em estoque',
       status: 'Pronto para venda',
       createdAt: Date.now(),
+      extraCosts: [],
       priceHistory: [
         {
           price: lastSale.tradeItemValue || 0,
@@ -142,7 +186,7 @@ const Estoque: React.FC = () => {
       ]
     };
 
-    setProducts([newProduct, ...products]);
+    setProducts(prev => [newProduct, ...prev]);
     setIsTradeModalOpen(false);
     setTradeImage(undefined);
     setShowSummary(true);
@@ -165,7 +209,7 @@ const Estoque: React.FC = () => {
 
   const handleDelete = (id: string) => {
     if (confirm('Deseja excluir este produto?')) {
-      setProducts(products.filter(p => p.id !== id));
+      setProducts(prev => prev.filter(p => p.id !== id));
     }
   };
 
@@ -198,7 +242,7 @@ const Estoque: React.FC = () => {
       ]
     };
 
-    setProducts(products.map(p => p.id === selectedProduct.id ? updatedProduct : p));
+    setProducts(prev => prev.map(p => p.id === selectedProduct.id ? updatedProduct : p));
     setSelectedProduct(updatedProduct);
   };
 
@@ -244,8 +288,8 @@ const Estoque: React.FC = () => {
       reinvestmentCapital
     };
 
-    setSales([...sales, newSale]);
-    const updatedProducts = products.map(p => {
+    setSales(prev => [...prev, newSale]);
+    setProducts(prev => prev.map(p => {
       if (p.id === selectedProduct.id) {
         const newQuantity = p.quantity - 1;
         if (newQuantity <= 0) return null;
@@ -263,9 +307,7 @@ const Estoque: React.FC = () => {
         };
       }
       return p;
-    }).filter((p): p is Product => p !== null);
-
-    setProducts(updatedProducts);
+    }).filter((p): p is Product => p !== null));
 
     setLastSale(newSale);
     setIsModalOpen(false);
@@ -454,10 +496,40 @@ const Estoque: React.FC = () => {
                         </div>
                       </div>
                       <div className="bg-white/5 p-3 rounded-xl">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase block">Custo</span>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase block">Custo Total</span>
                         <span className="text-lg font-black text-white">R$ {selectedProduct.costValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                       </div>
                     </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white/5 p-3 rounded-xl">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase block">Status</span>
+                        <span className="text-xs font-bold text-blue-400 uppercase">{selectedProduct.status || 'N/A'}</span>
+                      </div>
+                      <div className="bg-white/5 p-3 rounded-xl">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase block">Localização</span>
+                        <span className="text-xs font-bold text-white uppercase">{selectedProduct.location || 'N/A'}</span>
+                      </div>
+                    </div>
+
+                    {/* Extra Costs in Details */}
+                    {selectedProduct.extraCosts && selectedProduct.extraCosts.length > 0 && (
+                      <div className="flex flex-col gap-2">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase ml-1">Gastos Adicionais</span>
+                        <div className="bg-white/5 rounded-xl p-3 flex flex-col gap-2">
+                          <div className="flex justify-between items-center text-[10px] text-slate-500 uppercase border-b border-white/5 pb-1 mb-1">
+                            <span>Custo Base</span>
+                            <span className="text-white">R$ {(selectedProduct.baseCost || selectedProduct.costValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                          </div>
+                          {selectedProduct.extraCosts.map((cost, idx) => (
+                            <div key={idx} className="flex justify-between items-center text-[10px]">
+                              <span className="text-slate-400">{cost.name}</span>
+                              <span className="text-white font-bold">R$ {cost.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Price History Section */}
                     <div className="flex flex-col gap-2">
@@ -499,7 +571,7 @@ const Estoque: React.FC = () => {
                     <div className="flex flex-col gap-2">
                       <span className="text-[10px] font-bold text-slate-500 uppercase ml-1">Observações</span>
                       <div className="bg-white/5 p-4 rounded-xl text-sm text-slate-300 min-h-[80px]">
-                        {selectedProduct.observations || 'Nenhuma observação.'}
+                        {selectedProduct.notes || selectedProduct.observations || 'Nenhuma observação.'}
                       </div>
                     </div>
                   </div>
@@ -787,57 +859,191 @@ const Estoque: React.FC = () => {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[#121821] w-full max-w-md rounded-3xl border border-white/10 overflow-hidden shadow-2xl"
+              className="bg-[#121821] w-full max-w-md max-h-[90vh] rounded-3xl border border-white/10 overflow-hidden shadow-2xl flex flex-col"
             >
-              <div className="p-6 flex flex-col gap-6">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-black text-white uppercase tracking-tighter">Novo Produto</h3>
-                  <button onClick={() => setIsAddProductModalOpen(false)} className="text-slate-500 hover:text-white">
-                    <X size={24} />
-                  </button>
+              <div className="p-6 border-b border-white/5 flex justify-between items-center">
+                <h3 className="text-lg font-black text-white uppercase tracking-tighter">Novo Produto</h3>
+                <button onClick={() => setIsAddProductModalOpen(false)} className="text-slate-500 hover:text-white">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto flex-1 flex flex-col gap-6 custom-scrollbar">
+                {/* Photo Upload */}
+                <div className="flex flex-col items-center gap-3">
+                  <div className="relative w-full aspect-square max-w-[140px] bg-[#0b0f14] rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden">
+                    {newProductPhoto ? (
+                      <img src={newProductPhoto} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <Camera size={32} className="text-slate-700" />
+                    )}
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleAddProductImageUpload}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                    />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase">Toque para adicionar foto</span>
                 </div>
 
-                <div className="flex flex-col gap-6">
-                  {/* Photo Upload */}
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="relative w-full aspect-square max-w-[160px] bg-[#0b0f14] rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden">
-                      {newProductPhoto ? (
-                        <img src={newProductPhoto} alt="Preview" className="w-full h-full object-cover" />
-                      ) : (
-                        <Camera size={32} className="text-slate-700" />
-                      )}
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={handleAddProductImageUpload}
-                        className="absolute inset-0 opacity-0 cursor-pointer"
-                      />
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase">Toque para adicionar foto</span>
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Nome do Produto</label>
+                    <input 
+                      type="text" 
+                      placeholder="Ex: iPhone 13 Pro"
+                      value={newProductName}
+                      onChange={(e) => setNewProductName(e.target.value)}
+                      className="bg-white/5 border border-white/5 rounded-xl p-4 text-sm focus:outline-none focus:border-[#00c853]/50"
+                    />
                   </div>
 
-                  <div className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Nome do Produto</label>
-                      <input 
-                        type="text" 
-                        placeholder="Ex: iPhone 13 Pro"
-                        value={newProductName}
-                        onChange={(e) => setNewProductName(e.target.value)}
-                        className="bg-white/5 border border-white/5 rounded-xl p-4 text-sm focus:outline-none focus:border-[#00c853]/50"
-                      />
-                    </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Categoria</label>
+                    <select 
+                      value={newProductCategory}
+                      onChange={(e) => setNewProductCategory(e.target.value)}
+                      className="bg-white/5 border border-white/5 rounded-xl p-4 text-sm focus:outline-none focus:border-[#00c853]/50 appearance-none text-white"
+                    >
+                      {[
+                        'Informática', 'Celular', 'Eletrodoméstico', 'Videogame', 'Eletrônicos', 
+                        'Móveis', 'Bicicletas', 'Motos', 'Carros', 'Imóveis', 'Instrumentos', 
+                        'Peças Automóveis', 'Roupas e Acessórios', 'Calçados', 'Bijuterias', 
+                        'Relógios', 'Perfumes', 'Máquinas e Ferramentas', 'TV / Acessórios', 'Outros'
+                      ].map(cat => (
+                        <option key={cat} value={cat} className="bg-[#121821]">{cat}</option>
+                      ))}
+                    </select>
+                  </div>
 
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Preço de Venda (R$)</label>
+                      <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Custo base (R$)</label>
                       <input 
                         type="number" 
                         placeholder="0,00"
-                        value={newProductPrice}
-                        onChange={(e) => setNewProductPrice(e.target.value)}
+                        value={newProductBaseCost}
+                        onChange={(e) => setNewProductBaseCost(e.target.value)}
                         className="bg-white/5 border border-white/5 rounded-xl p-4 text-sm focus:outline-none focus:border-[#00c853]/50"
                       />
                     </div>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Preço de venda estimado (R$)</label>
+                      <input 
+                        type="number" 
+                        placeholder="0,00"
+                        value={newProductEstimatedPrice}
+                        onChange={(e) => setNewProductEstimatedPrice(e.target.value)}
+                        className="bg-white/5 border border-white/5 rounded-xl p-4 text-sm focus:outline-none focus:border-[#00c853]/50"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Estoque</label>
+                      <input 
+                        type="number" 
+                        value={newProductStock}
+                        onChange={(e) => setNewProductStock(e.target.value)}
+                        className="bg-white/5 border border-white/5 rounded-xl p-4 text-sm focus:outline-none focus:border-[#00c853]/50"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Status do produto</label>
+                      <select 
+                        value={newProductStatus}
+                        onChange={(e) => setNewProductStatus(e.target.value as any)}
+                        className="bg-white/5 border border-white/5 rounded-xl p-4 text-sm focus:outline-none focus:border-[#00c853]/50 appearance-none text-white"
+                      >
+                        <option value="Pronto para venda" className="bg-[#121821]">Pronto pra venda</option>
+                        <option value="Aguardando reparo" className="bg-[#121821]">Aguardando reparo</option>
+                        <option value="Em melhoria" className="bg-[#121821]">Em melhoria</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Local</label>
+                    <input 
+                      type="text" 
+                      placeholder="Ex: Vitrine A"
+                      value={newProductLocation}
+                      onChange={(e) => setNewProductLocation(e.target.value)}
+                      className="bg-white/5 border border-white/5 rounded-xl p-4 text-sm focus:outline-none focus:border-[#00c853]/50"
+                    />
+                  </div>
+
+                  {/* Gastos Adicionais Section */}
+                  <div className="flex flex-col gap-3 p-4 bg-white/5 rounded-2xl border border-white/5">
+                    <label className="text-[10px] font-bold uppercase text-slate-500">Gastos adicionais</label>
+                    
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        placeholder="Nome (ex: frete)"
+                        value={extraCostName}
+                        onChange={(e) => setExtraCostName(e.target.value)}
+                        className="flex-1 bg-white/5 border border-white/5 rounded-xl p-3 text-xs focus:outline-none focus:border-blue-500/50"
+                      />
+                      <input 
+                        type="number" 
+                        placeholder="Valor"
+                        value={extraCostValue}
+                        onChange={(e) => setExtraCostValue(e.target.value)}
+                        className="w-24 bg-white/5 border border-white/5 rounded-xl p-3 text-xs focus:outline-none focus:border-blue-500/50"
+                      />
+                      <button 
+                        onClick={addExtraCost}
+                        className="p-3 bg-blue-500/20 text-blue-400 rounded-xl hover:bg-blue-500/30 transition-colors"
+                      >
+                        <Plus size={18} />
+                      </button>
+                    </div>
+
+                    {newProductExtraCosts.length > 0 && (
+                      <div className="flex flex-col gap-2 mt-2">
+                        {newProductExtraCosts.map((cost, idx) => (
+                          <div key={idx} className="flex justify-between items-center p-2 bg-white/5 rounded-lg text-xs">
+                            <span className="text-slate-300">{cost.name}</span>
+                            <div className="flex items-center gap-3">
+                              <span className="font-bold text-white">R$ {cost.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                              <button onClick={() => removeExtraCost(idx)} className="text-red-500/50 hover:text-red-500">
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Financial Summary Box */}
+                  <div className="bg-[#00c853]/5 border border-[#00c853]/10 p-4 rounded-2xl flex flex-col gap-2">
+                    <div className="flex justify-between items-center text-[10px] font-bold uppercase text-slate-500">
+                      <span>Custo base</span>
+                      <span className="text-white">R$ {Number(newProductBaseCost || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[10px] font-bold uppercase text-slate-500">
+                      <span>Gastos adicionais</span>
+                      <span className="text-white">R$ {totalExtraCosts.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="pt-2 mt-1 border-t border-white/5 flex justify-between items-center">
+                      <span className="text-xs font-black text-[#00c853] uppercase tracking-widest">Total de custo</span>
+                      <span className="text-lg font-black text-white">R$ {totalCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Observações</label>
+                    <textarea 
+                      rows={3}
+                      placeholder="Detalhes adicionais..."
+                      value={newProductNotes}
+                      onChange={(e) => setNewProductNotes(e.target.value)}
+                      className="bg-white/5 border border-white/5 rounded-xl p-4 text-sm focus:outline-none focus:border-[#00c853]/50 resize-none"
+                    />
                   </div>
 
                   {saveError && (
@@ -852,21 +1058,21 @@ const Estoque: React.FC = () => {
                     </div>
                   )}
                 </div>
+              </div>
 
-                <div className="flex flex-col gap-2 pt-4">
-                  <button 
-                    onClick={saveProduct}
-                    className="w-full bg-[#00c853] text-[#0b0f14] font-black py-4 rounded-2xl shadow-[0_0_20px_rgba(0,200,83,0.3)] active:scale-95 transition-transform uppercase tracking-widest text-xs"
-                  >
-                    Salvar Produto
-                  </button>
-                  <button 
-                    onClick={() => setIsAddProductModalOpen(false)}
-                    className="w-full bg-white/5 hover:bg-white/10 text-slate-400 font-bold py-4 rounded-2xl transition-colors uppercase tracking-widest text-[10px]"
-                  >
-                    Cancelar
-                  </button>
-                </div>
+              <div className="p-6 border-t border-white/5 flex flex-col gap-2">
+                <button 
+                  onClick={saveProduct}
+                  className="w-full bg-[#00c853] text-[#0b0f14] font-black py-4 rounded-2xl shadow-[0_0_20px_rgba(0,200,83,0.3)] active:scale-95 transition-transform uppercase tracking-widest text-xs"
+                >
+                  Salvar Produto
+                </button>
+                <button 
+                  onClick={() => setIsAddProductModalOpen(false)}
+                  className="w-full bg-white/5 hover:bg-white/10 text-slate-400 font-bold py-4 rounded-2xl transition-colors uppercase tracking-widest text-[10px]"
+                >
+                  Cancelar
+                </button>
               </div>
             </motion.div>
           </div>
