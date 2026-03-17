@@ -88,46 +88,38 @@ const Estoque: React.FC = () => {
 
   const saveProduct = () => {
     try {
-      // 1. Validate required fields before saving
-      if (!newProductName || !newProductBaseCost) {
+      if (!newProductName || !newProductBaseCost || !newProductEstimatedPrice) {
         setSaveError('Preencha os campos obrigatórios.');
         return;
       }
 
-      // 2. Ensure all numeric fields are converted safely
       const baseCost = Number(newProductBaseCost) || 0;
       const estimatedPrice = Number(newProductEstimatedPrice) || 0;
       const stock = Number(newProductStock) || 0;
-      
-      // 3. Ensure extraCosts is always an array
       const extraCosts = Array.isArray(newProductExtraCosts) ? newProductExtraCosts : [];
-
       const totalExtraCosts = extraCosts.reduce((sum, cost) => sum + (Number(cost.value) || 0), 0);
       const totalCost = baseCost + totalExtraCosts;
 
-      // 4. Fix LocalStorage saving
       const newProduct: Product = {
         id: crypto.randomUUID(),
         name: newProductName,
         category: newProductCategory || 'Outros',
+        baseCost: baseCost,
+        estimatedPrice: estimatedPrice,
+        stock: stock,
+        status: newProductStatus || 'Pronto para venda',
+        location: newProductLocation || '',
+        notes: newProductNotes || '',
+        extraCosts: extraCosts,
+        photo: newProductPhoto,
+        createdAt: Date.now(),
+        // Compatibility fields
         purchaseDate: new Date().toISOString().split('T')[0],
         costValue: totalCost,
-        baseCost: baseCost,
         salePrice: estimatedPrice,
-        estimatedPrice: estimatedPrice,
         quantity: stock,
-        stock: stock,
         taxPercentage: 0,
-        observations: newProductNotes || '',
-        notes: newProductNotes || '',
-        location: newProductLocation || '',
-        extraCosts: extraCosts,
-        image: newProductPhoto,
-        photo: newProductPhoto,
-        photos: newProductPhoto ? [newProductPhoto] : [],
         availability: 'Em estoque',
-        status: newProductStatus || 'Pronto para venda',
-        createdAt: Date.now(),
         priceHistory: [
           {
             price: estimatedPrice,
@@ -137,13 +129,7 @@ const Estoque: React.FC = () => {
         ]
       };
 
-      // 5. Update LocalStorage safely via setProducts (which uses useLocalStorage hook)
-      setProducts(prev => {
-        const currentProducts = Array.isArray(prev) ? prev : [];
-        return [newProduct, ...currentProducts];
-      });
-
-      // 6. After saving
+      setProducts(prev => [newProduct, ...prev]);
       setSaveSuccess('Produto salvo com sucesso.');
       setNewProductName('');
       setNewProductCategory('Outros');
@@ -176,22 +162,22 @@ const Estoque: React.FC = () => {
       id: crypto.randomUUID(),
       name: lastSale.tradeItemName || 'Item de Troca',
       category: 'Outros',
+      baseCost: lastSale.tradeItemValue || 0,
+      estimatedPrice: lastSale.tradeItemValue || 0,
+      stock: 1,
+      status: 'Pronto para venda',
+      location: '',
+      notes: `Recebido em troca na venda de ${lastSale.productName}`,
+      extraCosts: [],
+      photo: tradeImage,
+      createdAt: Date.now(),
+      // Compatibility fields
       purchaseDate: new Date().toISOString().split('T')[0],
       costValue: lastSale.tradeItemValue || 0,
-      baseCost: lastSale.tradeItemValue || 0,
       salePrice: lastSale.tradeItemValue || 0,
-      estimatedPrice: lastSale.tradeItemValue || 0,
       quantity: 1,
-      stock: 1,
       taxPercentage: 0,
-      observations: `Recebido em troca na venda de ${lastSale.productName}`,
-      notes: `Recebido em troca na venda de ${lastSale.productName}`,
-      image: tradeImage,
-      photo: tradeImage,
       availability: 'Em estoque',
-      status: 'Pronto para venda',
-      createdAt: Date.now(),
-      extraCosts: [],
       priceHistory: [
         {
           price: lastSale.tradeItemValue || 0,
@@ -366,8 +352,8 @@ const Estoque: React.FC = () => {
               className={`bg-[#121821] rounded-2xl border border-white/5 overflow-hidden cursor-pointer active:scale-[0.98] transition-transform ${product.availability === 'Vendido' ? 'opacity-60' : ''}`}
             >
               <div className="flex p-4 gap-4">
-                {(product.photos && product.photos.length > 0) || product.image ? (
-                  <img src={product.photos?.[0] || product.image} alt={product.name} className="w-20 h-20 rounded-xl object-cover bg-slate-800" />
+                {(product.photos && product.photos.length > 0) || product.photo || product.image ? (
+                  <img src={product.photos?.[0] || product.photo || product.image} alt={product.name} className="w-20 h-20 rounded-xl object-cover bg-slate-800" />
                 ) : (
                   <div className="w-20 h-20 rounded-xl bg-slate-800 flex items-center justify-center text-slate-600">
                     <Tag size={24} />
@@ -418,8 +404,8 @@ const Estoque: React.FC = () => {
                 </div>
               </div>
               <div className="bg-white/5 px-4 py-2 flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase">
-                <span className="flex items-center gap-1"><Calendar size={10} /> {new Date(product.purchaseDate).toLocaleDateString('pt-BR')}</span>
-                <span>Custo: R$ {product.costValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                <span className="flex items-center gap-1"><Calendar size={10} /> {product.purchaseDate ? new Date(product.purchaseDate).toLocaleDateString('pt-BR') : 'N/A'}</span>
+                <span>Custo: R$ {(product.costValue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
               </div>
             </motion.div>
           ))}
@@ -454,7 +440,13 @@ const Estoque: React.FC = () => {
                   {/* Gallery */}
                   <div className="flex flex-col gap-3">
                     <div className="w-full aspect-square bg-[#0b0f14] rounded-2xl overflow-hidden border border-white/5">
-                      {selectedProduct.photos && selectedProduct.photos.length > 0 ? (
+                      {selectedProduct.photo ? (
+                        <img 
+                          src={selectedProduct.photo} 
+                          alt={selectedProduct.name} 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : selectedProduct.photos && selectedProduct.photos.length > 0 ? (
                         <img 
                           src={selectedProduct.photos[0]} 
                           alt={selectedProduct.name} 
@@ -884,13 +876,17 @@ const Estoque: React.FC = () => {
               </div>
 
               <div className="p-6 overflow-y-auto flex-1 flex flex-col gap-6 custom-scrollbar">
-                {/* Photo Upload */}
-                <div className="flex flex-col items-center gap-3">
-                  <div className="relative w-full aspect-square max-w-[140px] bg-[#0b0f14] rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden">
+                {/* Photo Section */}
+                <div className="flex flex-col gap-3">
+                  <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Foto do Produto</label>
+                  <div className="relative w-full aspect-video bg-[#0b0f14] rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden">
                     {newProductPhoto ? (
                       <img src={newProductPhoto} alt="Preview" className="w-full h-full object-cover" />
                     ) : (
-                      <Camera size={32} className="text-slate-700" />
+                      <div className="flex flex-col items-center gap-2 text-slate-700">
+                        <Camera size={40} />
+                        <span className="text-[10px] font-bold uppercase">Toque para adicionar foto</span>
+                      </div>
                     )}
                     <input 
                       type="file" 
@@ -899,18 +895,28 @@ const Estoque: React.FC = () => {
                       className="absolute inset-0 opacity-0 cursor-pointer"
                     />
                   </div>
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">Toque para adicionar foto</span>
                 </div>
 
                 <div className="flex flex-col gap-4">
+                  {saveError && (
+                    <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl text-red-500 text-xs font-bold text-center">
+                      {saveError}
+                    </div>
+                  )}
+
+                  {saveSuccess && (
+                    <div className="bg-[#00c853]/10 border border-[#00c853]/20 p-4 rounded-xl text-[#00c853] text-xs font-bold text-center">
+                      {saveSuccess}
+                    </div>
+                  )}
+
                   <div className="flex flex-col gap-2">
-                    <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Nome do Produto</label>
+                    <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Nome do Produto *</label>
                     <input 
-                      type="text" 
-                      placeholder="Ex: iPhone 13 Pro"
                       value={newProductName}
                       onChange={(e) => setNewProductName(e.target.value)}
-                      className="bg-white/5 border border-white/5 rounded-xl p-4 text-sm focus:outline-none focus:border-[#00c853]/50"
+                      placeholder="Ex: iPhone 13 Pro" 
+                      className="bg-white/5 border border-white/5 rounded-xl p-4 text-sm focus:outline-none focus:border-[#00c853]/50" 
                     />
                   </div>
 
@@ -934,23 +940,25 @@ const Estoque: React.FC = () => {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Custo base (R$)</label>
+                      <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Custo Base (R$) *</label>
                       <input 
                         type="number" 
-                        placeholder="0,00"
+                        step="0.01"
                         value={newProductBaseCost}
                         onChange={(e) => setNewProductBaseCost(e.target.value)}
-                        className="bg-white/5 border border-white/5 rounded-xl p-4 text-sm focus:outline-none focus:border-[#00c853]/50"
+                        placeholder="0,00" 
+                        className="bg-white/5 border border-white/5 rounded-xl p-4 text-sm focus:outline-none focus:border-[#00c853]/50" 
                       />
                     </div>
                     <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Preço de venda estimado (R$)</label>
+                      <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Preço Venda Estimado (R$) *</label>
                       <input 
                         type="number" 
-                        placeholder="0,00"
+                        step="0.01"
                         value={newProductEstimatedPrice}
                         onChange={(e) => setNewProductEstimatedPrice(e.target.value)}
-                        className="bg-white/5 border border-white/5 rounded-xl p-4 text-sm focus:outline-none focus:border-[#00c853]/50"
+                        placeholder="0,00" 
+                        className="bg-white/5 border border-white/5 rounded-xl p-4 text-sm focus:outline-none focus:border-[#00c853]/50" 
                       />
                     </div>
                   </div>
@@ -962,11 +970,11 @@ const Estoque: React.FC = () => {
                         type="number" 
                         value={newProductStock}
                         onChange={(e) => setNewProductStock(e.target.value)}
-                        className="bg-white/5 border border-white/5 rounded-xl p-4 text-sm focus:outline-none focus:border-[#00c853]/50"
+                        className="bg-white/5 border border-white/5 rounded-xl p-4 text-sm focus:outline-none focus:border-[#00c853]/50" 
                       />
                     </div>
                     <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Status do produto</label>
+                      <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Status</label>
                       <select 
                         value={newProductStatus}
                         onChange={(e) => setNewProductStatus(e.target.value as any)}
@@ -979,39 +987,27 @@ const Estoque: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Local</label>
-                    <input 
-                      type="text" 
-                      placeholder="Ex: Vitrine A"
-                      value={newProductLocation}
-                      onChange={(e) => setNewProductLocation(e.target.value)}
-                      className="bg-white/5 border border-white/5 rounded-xl p-4 text-sm focus:outline-none focus:border-[#00c853]/50"
-                    />
-                  </div>
-
-                  {/* Gastos Adicionais Section */}
+                  {/* Extra Costs Section */}
                   <div className="flex flex-col gap-3 p-4 bg-white/5 rounded-2xl border border-white/5">
-                    <label className="text-[10px] font-bold uppercase text-slate-500">Gastos adicionais</label>
-                    
+                    <span className="text-[10px] font-bold uppercase text-slate-500">Gastos Adicionais</span>
                     <div className="flex gap-2">
                       <input 
-                        type="text" 
-                        placeholder="Nome (ex: frete)"
+                        placeholder="Nome (ex: Frete)" 
                         value={extraCostName}
                         onChange={(e) => setExtraCostName(e.target.value)}
-                        className="flex-1 bg-white/5 border border-white/5 rounded-xl p-3 text-xs focus:outline-none focus:border-blue-500/50"
+                        className="flex-1 bg-[#0b0f14] border border-white/5 rounded-xl p-3 text-xs focus:outline-none focus:border-[#00c853]/50"
                       />
                       <input 
                         type="number" 
-                        placeholder="Valor"
+                        placeholder="Valor" 
                         value={extraCostValue}
                         onChange={(e) => setExtraCostValue(e.target.value)}
-                        className="w-24 bg-white/5 border border-white/5 rounded-xl p-3 text-xs focus:outline-none focus:border-blue-500/50"
+                        className="w-24 bg-[#0b0f14] border border-white/5 rounded-xl p-3 text-xs focus:outline-none focus:border-[#00c853]/50"
                       />
                       <button 
+                        type="button"
                         onClick={addExtraCost}
-                        className="p-3 bg-blue-500/20 text-blue-400 rounded-xl hover:bg-blue-500/30 transition-colors"
+                        className="p-3 bg-[#00c853]/20 text-[#00c853] rounded-xl"
                       >
                         <Plus size={18} />
                       </button>
@@ -1020,58 +1016,56 @@ const Estoque: React.FC = () => {
                     {newProductExtraCosts.length > 0 && (
                       <div className="flex flex-col gap-2 mt-2">
                         {newProductExtraCosts.map((cost, idx) => (
-                          <div key={idx} className="flex justify-between items-center p-2 bg-white/5 rounded-lg text-xs">
-                            <span className="text-slate-300">{cost.name}</span>
-                            <div className="flex items-center gap-3">
-                              <span className="font-bold text-white">R$ {cost.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                              <button onClick={() => removeExtraCost(idx)} className="text-red-500/50 hover:text-red-500">
-                                <Trash2 size={14} />
-                              </button>
+                          <div key={idx} className="flex justify-between items-center bg-white/5 p-3 rounded-xl">
+                            <div className="flex flex-col">
+                              <span className="text-xs font-bold text-white">{cost.name}</span>
+                              <span className="text-[10px] text-slate-500 uppercase">R$ {cost.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                             </div>
+                            <button onClick={() => removeExtraCost(idx)} className="text-red-500 p-1">
+                              <Trash2 size={14} />
+                            </button>
                           </div>
                         ))}
                       </div>
                     )}
+
+                    {/* Financial Summary Box */}
+                    <div className="mt-4 pt-4 border-t border-white/5 flex flex-col gap-2">
+                      <div className="flex justify-between text-[10px] font-bold uppercase text-slate-500">
+                        <span>Custo Base</span>
+                        <span>R$ {(Number(newProductBaseCost) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between text-[10px] font-bold uppercase text-slate-500">
+                        <span>Gastos Adicionais</span>
+                        <span>R$ {totalExtraCosts.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between text-xs font-black uppercase text-white pt-1">
+                        <span>Total de Custo</span>
+                        <span className="text-[#00c853]">R$ {totalCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Financial Summary Box */}
-                  <div className="bg-[#00c853]/5 border border-[#00c853]/10 p-4 rounded-2xl flex flex-col gap-2">
-                    <div className="flex justify-between items-center text-[10px] font-bold uppercase text-slate-500">
-                      <span>Custo base</span>
-                      <span className="text-white">R$ {Number(newProductBaseCost || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-[10px] font-bold uppercase text-slate-500">
-                      <span>Gastos adicionais</span>
-                      <span className="text-white">R$ {totalExtraCosts.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="pt-2 mt-1 border-t border-white/5 flex justify-between items-center">
-                      <span className="text-xs font-black text-[#00c853] uppercase tracking-widest">Total de custo</span>
-                      <span className="text-lg font-black text-white">R$ {totalCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                    </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Local</label>
+                    <input 
+                      value={newProductLocation}
+                      onChange={(e) => setNewProductLocation(e.target.value)}
+                      placeholder="Ex: Prateleira A1" 
+                      className="bg-white/5 border border-white/5 rounded-xl p-4 text-sm focus:outline-none focus:border-[#00c853]/50" 
+                    />
                   </div>
 
                   <div className="flex flex-col gap-2">
                     <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">Observações</label>
                     <textarea 
-                      rows={3}
-                      placeholder="Detalhes adicionais..."
                       value={newProductNotes}
                       onChange={(e) => setNewProductNotes(e.target.value)}
-                      className="bg-white/5 border border-white/5 rounded-xl p-4 text-sm focus:outline-none focus:border-[#00c853]/50 resize-none"
+                      rows={3} 
+                      placeholder="Detalhes adicionais..." 
+                      className="bg-white/5 border border-white/5 rounded-xl p-4 text-sm focus:outline-none focus:border-[#00c853]/50 resize-none" 
                     />
                   </div>
-
-                  {saveError && (
-                    <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl text-red-500 text-xs font-bold text-center">
-                      {saveError}
-                    </div>
-                  )}
-
-                  {saveSuccess && (
-                    <div className="bg-[#00c853]/10 border border-[#00c853]/20 p-4 rounded-xl text-[#00c853] text-xs font-bold text-center">
-                      {saveSuccess}
-                    </div>
-                  )}
                 </div>
               </div>
 

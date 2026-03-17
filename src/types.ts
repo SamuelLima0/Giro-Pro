@@ -17,24 +17,24 @@ export interface Product {
   id: string;
   name: string;
   category: string;
+  baseCost: number;
+  estimatedPrice: number;
+  stock: number;
+  status: ProductCondition;
+  location: string;
+  notes: string;
+  extraCosts: ExtraCost[];
+  photo?: string; // Base64
+  createdAt: number;
+  // Compatibility fields
   purchaseDate: string;
   costValue: number; // Total cost (baseCost + sum(extraCosts))
-  baseCost?: number;
   salePrice: number; // estimatedPrice
-  estimatedPrice?: number;
   quantity: number; // stock
-  stock?: number;
   taxPercentage: number;
-  observations: string; // notes
-  notes?: string;
-  location?: string;
-  extraCosts?: ExtraCost[];
   image?: string; // Base64
-  photo?: string; // Base64 (alias for image)
   photos?: string[];
   availability: AvailabilityStatus;
-  status?: ProductCondition;
-  createdAt: number;
   soldAt?: number;
   priceHistory?: PriceHistoryEntry[];
 }
