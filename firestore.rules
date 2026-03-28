@@ -12,7 +12,7 @@ service cloud.firestore {
     //   - precoMax: number (required) - Preço máximo
     //   - ativo: boolean (required) - Status da busca
     //   - userId: string (required) - ID do proprietário
-    //   - createdAt: number (required) - Timestamp
+    //   - criadoEm: timestamp (required) - Timestamp do servidor
     //
     // ===============================================================
 
@@ -36,12 +36,12 @@ service cloud.firestore {
     }
 
     function isValidBusca(data) {
-      return hasOnlyAllowedFields(['produto', 'precoMax', 'ativo', 'userId', 'createdAt']) &&
+      return hasOnlyAllowedFields(['produto', 'precoMax', 'ativo', 'userId', 'criadoEm']) &&
              data.produto is string && data.produto.size() > 0 && data.produto.size() < 100 &&
              data.precoMax is number && data.precoMax >= 0 &&
              data.ativo is bool &&
              data.userId is string && data.userId == request.auth.uid &&
-             data.createdAt is number;
+             data.criadoEm is timestamp;
     }
 
     match /buscas/{buscaId} {

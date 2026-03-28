@@ -164,9 +164,17 @@ const Buscas: React.FC = () => {
         resetForm();
         setMessage(null);
       }, 1500);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao salvar busca:", error);
-      setMessage({ text: 'Erro ao salvar busca no banco de dados.', type: 'error' });
+      // Extrair mensagem de erro amigável se for JSON do handleFirestoreError
+      let displayError = 'Erro ao salvar busca no banco de dados.';
+      try {
+        const parsedError = JSON.parse(error.message);
+        if (parsedError.error) displayError = parsedError.error;
+      } catch {
+        if (error.message) displayError = error.message;
+      }
+      setMessage({ text: displayError, type: 'error' });
     }
   };
 

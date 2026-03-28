@@ -68,10 +68,19 @@ export const salvarBusca = async (produto: string, precoMax: number) => {
     throw new Error("Usuário não autenticado");
   }
 
+  // Validações
+  if (!produto || produto.trim() === "") {
+    throw new Error("O nome do produto não pode estar vazio.");
+  }
+
+  if (isNaN(precoMax) || precoMax <= 0) {
+    throw new Error("O preço máximo deve ser um número válido maior que zero.");
+  }
+
   const path = 'buscas';
   try {
     const docRef = await addDoc(collection(db, path), {
-      produto,
+      produto: produto.trim(),
       precoMax: Number(precoMax),
       ativo: true,
       userId: auth.currentUser.uid,
