@@ -13,6 +13,7 @@ const Buscas: React.FC = () => {
   const [editingSearch, setEditingSearch] = useState<AutoSearch | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
   // Form State
   const [name, setName] = useState('');
@@ -116,7 +117,7 @@ const Buscas: React.FC = () => {
 
   const handleSave = async () => {
     if (!name || !term || !minPrice || !maxPrice || selectedMarketplaces.length === 0) {
-      alert('Por favor, preencha todos os campos obrigatórios.');
+      setMessage({ text: 'Por favor, preencha todos os campos obrigatórios.', type: 'error' });
       return;
     }
 
@@ -155,12 +156,17 @@ const Buscas: React.FC = () => {
         setSearches([newSearch, ...searches]);
       }
 
-      setView('list');
-      setEditingSearch(null);
-      resetForm();
+      setMessage({ text: 'Busca salva com sucesso 🚀', type: 'success' });
+      
+      setTimeout(() => {
+        setView('list');
+        setEditingSearch(null);
+        resetForm();
+        setMessage(null);
+      }, 1500);
     } catch (error) {
       console.error("Erro ao salvar busca:", error);
-      alert("Erro ao salvar busca no banco de dados.");
+      setMessage({ text: 'Erro ao salvar busca no banco de dados.', type: 'error' });
     }
   };
 
@@ -439,11 +445,17 @@ const Buscas: React.FC = () => {
               </div>
             </div>
 
+            {message && (
+              <div className={`p-4 rounded-xl text-xs font-bold text-center ${message.type === 'success' ? 'bg-[#00c853]/10 text-[#00c853]' : 'bg-red-500/10 text-red-500'}`}>
+                {message.text}
+              </div>
+            )}
+
             <button 
               onClick={handleSave}
               className="w-full bg-blue-500 text-white font-black py-5 rounded-2xl shadow-[0_0_20px_rgba(59,130,246,0.3)] active:scale-95 transition-transform uppercase tracking-widest text-sm mt-4"
             >
-              Salvar Busca
+              Buscar
             </button>
           </div>
         </motion.div>

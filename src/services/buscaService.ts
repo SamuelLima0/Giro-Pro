@@ -75,7 +75,7 @@ export const salvarBusca = async (produto: string, precoMax: number) => {
       precoMax: Number(precoMax),
       ativo: true,
       userId: auth.currentUser.uid,
-      createdAt: Date.now()
+      criadoEm: serverTimestamp()
     });
     return docRef.id;
   } catch (error) {
